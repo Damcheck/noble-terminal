@@ -86,7 +86,13 @@ export default function TerminalHeader() {
           : live.price.toFixed(4);
         return { symbol: item.symbol, price: priceStr, change: `${up ? '+' : ''}${live.change_pct.toFixed(2)}%`, up };
       }
-      return item;
+      // 3. Force "---" if absolutely no real data exists to avoid fake prices
+      return { 
+        symbol: item.symbol, 
+        price: '---', 
+        change: '---', 
+        up: true 
+      };
     });
   }, [prices, ticks]);
 

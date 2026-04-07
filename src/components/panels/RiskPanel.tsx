@@ -48,18 +48,18 @@ export default function RiskPanel() {
     return () => clearInterval(id);
   }, []);
 
-  const vix = ticks['^VIX']?.price ?? prices['^VIX']?.price ?? 18.5;
-  const btcPrice = ticks['BTC-USD']?.price ?? prices['BTC-USD']?.price ?? 68000;
+  const vix = ticks['^VIX']?.price ?? prices['^VIX']?.price ?? null;
+  const btcPrice = ticks['BTC-USD']?.price ?? prices['BTC-USD']?.price ?? null;
   const fearVal = fearGreed?.value ?? 50;
 
   // Derive risk levels from live data
-  const marketRisk = Math.min(Math.round(((vix - 10) / 35) * 100), 99);
-  const cryptoRisk = Math.min(Math.round(((100 - fearVal) * 0.8) + (vix * 0.5)), 99);
-  const liquidityRisk = Math.min(Math.round(vix * 1.8 + 5), 99);
-  const correlationRisk = Math.min(Math.round(vix * 1.2 + 10), 95);
-  const tailRisk = Math.min(Math.round(vix * 1.5 + 8), 95);
+  const marketRisk = vix ? Math.min(Math.round(((vix - 10) / 35) * 100), 99) : 50;
+  const cryptoRisk = vix ? Math.min(Math.round(((100 - fearVal) * 0.8) + (vix * 0.5)), 99) : 50;
+  const liquidityRisk = vix ? Math.min(Math.round(vix * 1.8 + 5), 99) : 50;
+  const correlationRisk = vix ? Math.min(Math.round(vix * 1.2 + 10), 95) : 50;
+  const tailRisk = vix ? Math.min(Math.round(vix * 1.5 + 8), 95) : 50;
 
-  const vixColor = vix > 30 ? '#ff4444' : vix > 20 ? '#ffaa00' : '#44ff88';
+  const vixColor = !vix ? 'var(--text-muted)' : vix > 30 ? '#ff4444' : vix > 20 ? '#ffaa00' : '#44ff88';
   const fearColor = fearVal < 25 ? '#ff4444' : fearVal < 50 ? '#ffaa00' : fearVal < 75 ? '#44ff88' : '#44ff88';
   const fearLabel = fearGreed?.classification ?? (fearVal < 25 ? 'Extreme Fear' : fearVal < 50 ? 'Fear' : fearVal < 75 ? 'Greed' : 'Extreme Greed');
 
@@ -75,9 +75,9 @@ export default function RiskPanel() {
           }}>
             <div style={{ fontSize: 8, color: 'var(--text-ghost)', letterSpacing: 0.5 }}>VIX · LIVE</div>
             <div style={{ fontSize: 22, fontWeight: 800, color: vixColor, fontFamily: 'var(--font-mono)', lineHeight: 1.2 }}>
-              {vix.toFixed(2)}
+              {vix !== null ? vix.toFixed(2) : '---'}
             </div>
-            <div style={{ fontSize: 8, color: vixColor }}>{vix > 30 ? 'HIGH RISK' : vix > 20 ? 'ELEVATED' : 'STABLE'}</div>
+            <div style={{ fontSize: 8, color: vixColor }}>{!vix ? 'AWAITING API' : vix > 30 ? 'HIGH RISK' : vix > 20 ? 'ELEVATED' : 'STABLE'}</div>
           </div>
           <div style={{
             padding: '8px', background: 'var(--overlay-subtle)', borderRadius: 4,
@@ -103,7 +103,7 @@ export default function RiskPanel() {
         <div style={{ marginTop: 8, padding: '5px 8px', background: 'var(--overlay-subtle)', borderRadius: 3 }}>
           <div style={{ fontSize: 8, color: 'var(--text-ghost)' }}>BTC PRICE CONTEXT</div>
           <div style={{ fontSize: 11, color: 'var(--text)', fontFamily: 'var(--font-mono)', fontWeight: 700 }}>
-            ${btcPrice.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+            {btcPrice !== null ? `$${btcPrice.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : 'AWAITING API'}
           </div>
         </div>
 

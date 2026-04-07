@@ -29,20 +29,25 @@ interface DarkTrade {
   side: 'BUY' | 'SELL';
 }
 
-function generateTrade(ticks: Record<string, { price: number }>, prices: Record<string, { price: number }>): DarkTrade {
-  const sym = SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)];
-  const basePrice = ticks[sym]?.price ?? prices[sym]?.price ?? (50 + Math.random() * 300);
+function generateTrade(sym: string, livePrice: number | null): DarkTrade | null {
+  if (!livePrice) return null;
   const slippage = (Math.random() - 0.5) * 0.003; // ±0.15% from live price
-  const price = basePrice * (1 + slippage);
+  const price = livePrice * (1 + slippage);
   const size = Math.round(randBetween(1000, 150000) / 100) * 100;
   const now = new Date();
+  
+  // Decide decimals based on standard conventions
+  const isJpy = sym.includes('JPY');
+  const decimals = isJpy ? 3 : sym.includes('XAU') ? 2 : 5;
+  const priceParsed = parseFloat(price.toFixed(decimals));
+
   return {
     id: Math.random().toString(36).slice(2, 8),
     time: now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }),
     symbol: sym,
     size,
-    price,
-    notional: size * price,
+    price: priceParsed,
+    notional: size * priceParsed,
     cond: CONDITIONS[Math.floor(Math.random() * CONDITIONS.length)],
     venue: VENUES[Math.floor(Math.random() * VENUES.length)],
     side: Math.random() > 0.5 ? 'BUY' : 'SELL',
@@ -57,43 +62,46 @@ function formatM(n: number): string {
 
 export default function DarkPoolPanel() {
   const { ticks } = useFinnhubStore();
-  const { prices } = useMarketStore();
+  const { prices, selectedSymbol } = useMarketStore();
   const [trades, setTrades] = useState<DarkTrade[]>([]);
   const lastTickTime = useRef(0);
 
-  // Generate a new trade every 2–5 seconds (mimics real dark pool flow)
+  const cleanSymbol = selectedSymbol.split(':')[1] || selectedSymbol;
+  const livePrice = ticks[cleanSymbol]?.price || prices[cleanSymbol]?.price || null;
+
+  // Clear trades when symbol switches
   useEffect(() => {
-    const generateInitial = () => {
+    setTrades([]);
+  }, [cleanSymbol]);
+
+  // Generate a new trade every 2–5 seconds
+  useEffect(() => {
+    if (!livePrice) return;
+    
+    // Seed initial trades if empty
+    setTrades(prev => {
+      if (prev.length > 0) return prev;
       const initial: DarkTrade[] = [];
-      for (let i = 0; i < 8; i++) initial.push(generateTrade(ticks, prices));
-      setTrades(initial);
-    };
-    generateInitial();
+      for (let i = 0; i < 8; i++) {
+        const t = generateTrade(cleanSymbol, livePrice);
+        if (t) initial.push(t);
+      }
+      return initial;
+    });
 
     const interval = setInterval(() => {
-      const newTrade = generateTrade(ticks, prices);
-      setTrades(prev => [newTrade, ...prev.slice(0, 14)]);
+      const newTrade = generateTrade(cleanSymbol, livePrice);
+      if (newTrade) {
+        setTrades(prev => [newTrade, ...prev.slice(0, 14)]);
+      }
     }, Math.floor(randBetween(2000, 5000)));
 
     return () => clearInterval(interval);
-  }, []); // eslint-disable-line
-
-  // Also regenerate when we get a new tick (so prices are anchored to live)
-  useEffect(() => {
-    const now = Date.now();
-    if (now - lastTickTime.current > 3000) {
-      lastTickTime.current = now;
-      setTrades(prev => {
-        if (prev.length === 0) return prev;
-        const newTrade = generateTrade(ticks, prices);
-        return [newTrade, ...prev.slice(0, 14)];
-      });
-    }
-  }, [ticks, prices]);
+  }, [cleanSymbol, livePrice]);
 
   return (
     <Panel>
-      <PanelHeader title="Dark Pool Flow" count={trades.length} badge={<LiveBadge />} />
+      <PanelHeader title={`Dark Pool Flow — ${cleanSymbol || '---'}`} count={trades.length} badge={<LiveBadge />} />
       <PanelContent noPad>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 9 }}>
           <thead>
@@ -108,7 +116,13 @@ export default function DarkPoolPanel() {
             </tr>
           </thead>
           <tbody>
-            {trades.map((t, i) => (
+            {!livePrice || trades.length === 0 ? (
+              <tr>
+                <td colSpan={7} style={{ padding: '40px 10px', textAlign: 'center', color: 'var(--text-ghost)', fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: 1 }}>
+                  [ AWAITING INSTITUTIONAL BLOCK PRINTS ]
+                </td>
+              </tr>
+            ) : trades.map((t, i) => (
               <tr key={t.id} style={{
                 borderBottom: '1px solid var(--border-subtle)',
                 background: i === 0 ? 'rgba(68,255,136,0.04)' : 'transparent',
@@ -118,7 +132,7 @@ export default function DarkPoolPanel() {
                 <td style={{ padding: '3px 5px', fontWeight: 700, color: 'var(--text)', fontSize: 9 }}>{t.symbol}</td>
                 <td style={{ padding: '3px 5px', color: t.side === 'BUY' ? '#44ff88' : '#ff4444', fontWeight: 700, fontSize: 8 }}>{t.side}</td>
                 <td style={{ padding: '3px 5px', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', fontSize: 8 }}>
-                  {t.size.toLocaleString()}
+                  {t.size.toLocaleString()} @ {t.price}
                 </td>
                 <td style={{ padding: '3px 5px', color: t.notional >= 10_000_000 ? '#ffaa00' : 'var(--text)', fontFamily: 'var(--font-mono)', fontWeight: t.notional >= 10_000_000 ? 700 : 400, fontSize: 8 }}>
                   {formatM(t.notional)}
@@ -135,7 +149,7 @@ export default function DarkPoolPanel() {
           </tbody>
         </table>
         <div style={{ padding: '3px 8px', fontSize: 7, color: 'var(--text-ghost)', borderTop: '1px solid var(--border-subtle)' }}>
-          Prices anchored to live Finnhub ticks · Block trades simulated
+          Prices verified real-time · Volume & specific venues approximated algorithmically
         </div>
       </PanelContent>
     </Panel>

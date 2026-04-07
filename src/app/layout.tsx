@@ -33,9 +33,6 @@ export const metadata: Metadata = {
     title: "Noble Terminal - Institutional Grade Trading",
     description: "Experience absolute market transparency.",
     creator: "@noblefunded",
-  },
-  icons: {
-    icon: "/favicon.ico", // Ensure you upload a real favicon to public/
   }
 };
 

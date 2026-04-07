@@ -41,34 +41,11 @@ export default function OrderBookPanel() {
   // Use the globally selected symbol for the order book (maps FX_IDC:EURUSD to EURUSD)
   const cleanSymbol = selectedSymbol.split(':')[1] || selectedSymbol;
   
-  // ── Smart Fallbacks for instantaneous panel-switching fluidity ─────────
-  const getFallbackPrice = (sym: string) => {
-    if (sym === 'XAUUSD') return 2950.10;
-    if (sym === 'XAGUSD') return 33.85;
-    if (sym === 'USOIL' || sym === 'OIL30') return 71.34;
-    if (sym === 'EURUSD') return 1.0841;
-    if (sym === 'GBPUSD') return 1.2739;
-    if (sym === 'AUDUSD') return 0.6441;
-    if (sym === 'NZDUSD') return 0.5981;
-    if (sym === 'EURGBP') return 0.8505;
-    if (sym.includes('JPY')) return 151.42;
-    if (sym === 'USDCAD' || sym === 'USDCHF') return 1.3541;
-    if (sym === 'BTC-USD' || sym.includes('BTC')) return 83412.00;
-    if (sym === 'ETH-USD' || sym.includes('ETH')) return 3241.77;
-    // Stocks
-    if (sym === 'AAPL') return 213.18;
-    if (sym === 'MSFT') return 412.32;
-    if (sym === 'NVDA') return 875.40;
-    if (sym === 'TSLA') return 247.62;
-    return 1.000;
-  };
-
-  const livePrice =
-    ticks[cleanSymbol]?.price ||
-    prices[cleanSymbol]?.price ||
-    getFallbackPrice(cleanSymbol);
+  const livePrice = ticks[cleanSymbol]?.price || prices[cleanSymbol]?.price || null;
 
   const book = useMemo(() => {
+    if (!livePrice) return { asks: [], bids: [], spread: '---' };
+    
     const mid = livePrice;
     const asks = generateLevels(mid, 7, 'ask', tick);
     const bids = generateLevels(mid, 7, 'bid', tick);
@@ -78,6 +55,7 @@ export default function OrderBookPanel() {
   }, [livePrice, tick, cleanSymbol]);
 
   const maxTotal = Math.max(
+    1,
     ...book.asks.map(a => a.total),
     ...book.bids.map(b => b.total)
   );
@@ -99,57 +77,65 @@ export default function OrderBookPanel() {
           <span style={{ textAlign: 'right' }}>TOTAL</span>
         </div>
 
-        {/* Asks (Sell Orders - Red) */}
-        <div style={{ display: 'flex', flexDirection: 'column' }}>
-          {book.asks.map(ask => {
-            const barW = (ask.total / maxTotal) * 100;
-            return (
-              <div key={ask.price} style={{
-                display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', padding: '2px 8px',
-                fontSize: 10, fontFamily: 'var(--font-mono)', position: 'relative', cursor: 'pointer',
-              }}>
-                <div style={{
-                  position: 'absolute', right: 0, top: 0, height: '100%', width: `${barW}%`,
-                  background: 'rgba(255,68,68,0.12)', zIndex: 0, transition: 'width 0.3s',
-                }} />
-                <span style={{ color: '#ff4444', position: 'relative', zIndex: 1, fontWeight: 600 }}>{ask.price.toFixed(priceDecimals)}</span>
-                <span style={{ color: 'var(--text-dim)', textAlign: 'center', position: 'relative', zIndex: 1 }}>{ask.size.toFixed(2)}</span>
-                <span style={{ color: 'var(--text-muted)', textAlign: 'right', position: 'relative', zIndex: 1 }}>{ask.total.toFixed(2)}</span>
-              </div>
-            );
-          })}
-        </div>
+        {!livePrice ? (
+          <div style={{ padding: '40px 10px', textAlign: 'center', color: 'var(--text-ghost)', fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: 1 }}>
+            [ WAITING FOR LIVE EXCHANGE DATA ]
+          </div>
+        ) : (
+          <>
+            {/* Asks (Sell Orders - Red) */}
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              {book.asks.map(ask => {
+                const barW = (ask.total / maxTotal) * 100;
+                return (
+                  <div key={ask.price} style={{
+                    display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', padding: '2px 8px',
+                    fontSize: 10, fontFamily: 'var(--font-mono)', position: 'relative', cursor: 'pointer',
+                  }}>
+                    <div style={{
+                      position: 'absolute', right: 0, top: 0, height: '100%', width: `${barW}%`,
+                      background: 'rgba(255,68,68,0.12)', zIndex: 0, transition: 'width 0.3s',
+                    }} />
+                    <span style={{ color: '#ff4444', position: 'relative', zIndex: 1, fontWeight: 600 }}>{ask.price.toFixed(priceDecimals)}</span>
+                    <span style={{ color: 'var(--text-dim)', textAlign: 'center', position: 'relative', zIndex: 1 }}>{ask.size.toFixed(2)}</span>
+                    <span style={{ color: 'var(--text-muted)', textAlign: 'right', position: 'relative', zIndex: 1 }}>{ask.total.toFixed(2)}</span>
+                  </div>
+                );
+              })}
+            </div>
 
-        {/* Spread Row */}
-        <div style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-          padding: '4px 8px', background: 'var(--overlay-light)',
-          borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)', fontSize: 10,
-        }}>
-          <span style={{ color: 'var(--text-muted)' }}>SPREAD</span>
-          <span style={{ color: 'var(--text)', fontWeight: 700, fontFamily: 'var(--font-mono)' }}>{book.spread}</span>
-        </div>
+            {/* Spread Row */}
+            <div style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+              padding: '4px 8px', background: 'var(--overlay-light)',
+              borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)', fontSize: 10,
+            }}>
+              <span style={{ color: 'var(--text-muted)' }}>SPREAD</span>
+              <span style={{ color: 'var(--text)', fontWeight: 700, fontFamily: 'var(--font-mono)' }}>{book.spread}</span>
+            </div>
 
-        {/* Bids (Buy Orders - Green) */}
-        <div style={{ display: 'flex', flexDirection: 'column' }}>
-          {book.bids.map(bid => {
-            const barW = (bid.total / maxTotal) * 100;
-            return (
-              <div key={bid.price} style={{
-                display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', padding: '2px 8px',
-                fontSize: 10, fontFamily: 'var(--font-mono)', position: 'relative', cursor: 'pointer',
-              }}>
-                <div style={{
-                  position: 'absolute', left: 0, top: 0, height: '100%', width: `${barW}%`,
-                  background: 'rgba(68,255,136,0.1)', zIndex: 0, transition: 'width 0.3s',
-                }} />
-                <span style={{ color: '#44ff88', position: 'relative', zIndex: 1, fontWeight: 600 }}>{bid.price.toFixed(priceDecimals)}</span>
-                <span style={{ color: 'var(--text-dim)', textAlign: 'center', position: 'relative', zIndex: 1 }}>{bid.size.toFixed(2)}</span>
-                <span style={{ color: 'var(--text-muted)', textAlign: 'right', position: 'relative', zIndex: 1 }}>{bid.total.toFixed(2)}</span>
-              </div>
-            );
-          })}
-        </div>
+            {/* Bids (Buy Orders - Green) */}
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              {book.bids.map(bid => {
+                const barW = (bid.total / maxTotal) * 100;
+                return (
+                  <div key={bid.price} style={{
+                    display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', padding: '2px 8px',
+                    fontSize: 10, fontFamily: 'var(--font-mono)', position: 'relative', cursor: 'pointer',
+                  }}>
+                    <div style={{
+                      position: 'absolute', left: 0, top: 0, height: '100%', width: `${barW}%`,
+                      background: 'rgba(68,255,136,0.1)', zIndex: 0, transition: 'width 0.3s',
+                    }} />
+                    <span style={{ color: '#44ff88', position: 'relative', zIndex: 1, fontWeight: 600 }}>{bid.price.toFixed(priceDecimals)}</span>
+                    <span style={{ color: 'var(--text-dim)', textAlign: 'center', position: 'relative', zIndex: 1 }}>{bid.size.toFixed(2)}</span>
+                    <span style={{ color: 'var(--text-muted)', textAlign: 'right', position: 'relative', zIndex: 1 }}>{bid.total.toFixed(2)}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </>
+        )}
       </PanelContent>
     </Panel>
   );

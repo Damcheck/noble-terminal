@@ -38,7 +38,7 @@ const ChartPanel = dynamic(() => import('@/components/panels/ChartPanel'), { ssr
 const TVWall = dynamic(() => import('@/components/panels/TVWallPanel'), { ssr: false });
 
 // Default layout — 12-col grid, rowHeight=32
-const DEFAULT_LAYOUTS = {
+const DEFAULT_LAYOUTS: any = {
   lg: [
     { i: 'chart',       x: 0, y: 0,  w: 5, h: 13, minW: 4, minH: 8 },
     { i: 'tvwall',      x: 5, y: 0,  w: 7, h: 13, minW: 5, minH: 8 },
@@ -61,6 +61,17 @@ const DEFAULT_LAYOUTS = {
     { i: 'splc',        x: 0, y: 59, w: 6, h: 9,  minW: 4, minH: 8 },
   ],
 };
+
+// Auto-generate linear stacking flows for smaller screens (Mobile / Tablet)
+DEFAULT_LAYOUTS.md = DEFAULT_LAYOUTS.lg.map((item: any, idx: number) => ({
+  i: item.i, x: (idx % 2) * 4, y: Math.floor(idx / 2) * 10, w: 4, h: Math.max(item.h, 10), minW: 2, minH: 8
+}));
+DEFAULT_LAYOUTS.sm = DEFAULT_LAYOUTS.lg.map((item: any, idx: number) => ({
+  i: item.i, x: 0, y: idx * 12, w: 4, h: Math.max(item.h, 10), minW: 1, minH: 6
+}));
+DEFAULT_LAYOUTS.xs = DEFAULT_LAYOUTS.lg.map((item: any, idx: number) => ({
+  i: item.i, x: 0, y: idx * 12, w: 2, h: Math.max(item.h, 10), minW: 1, minH: 6
+}));
 
 const PANELS = [
   { id: 'chart',       label: 'Chart',           Component: ChartPanel },
@@ -125,8 +136,6 @@ export default function TerminalPage() {
     });
 
   const visiblePanels = PANELS.filter(p => !hidden.has(p.id));
-  const visibleLayout = (DEFAULT_LAYOUTS.lg).filter(l => !hidden.has(l.i));
-
   const { width, containerRef, mounted } = useContainerWidth();
 
   return (
@@ -180,14 +189,19 @@ export default function TerminalPage() {
         {mounted && (
           <ResponsiveGridLayout
             width={width}
-            layouts={{ lg: visibleLayout }}
-            breakpoints={{ lg: 1280, md: 996, sm: 768 }}
-            cols={{ lg: 12, md: 8, sm: 4 }}
+            layouts={{ 
+              lg: DEFAULT_LAYOUTS.lg.filter((l: any) => !hidden.has(l.i)),
+              md: DEFAULT_LAYOUTS.md.filter((l: any) => !hidden.has(l.i)),
+              sm: DEFAULT_LAYOUTS.sm.filter((l: any) => !hidden.has(l.i)),
+              xs: DEFAULT_LAYOUTS.xs.filter((l: any) => !hidden.has(l.i)),
+            }}
+            breakpoints={{ lg: 1280, md: 996, sm: 768, xs: 480 }}
+            cols={{ lg: 12, md: 8, sm: 4, xs: 2 }}
             rowHeight={32}
             margin={[4, 4]}
             containerPadding={[0, 0]}
-            dragConfig={{ handle: '.drag-handle' }}
-            resizeConfig={{ enabled: true }}
+            // @ts-ignore
+            draggableHandle=".drag-handle"
             style={{ minHeight: '100%' }}
           >
             {visiblePanels.map(({ id, Component }) => (
