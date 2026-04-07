@@ -35,7 +35,7 @@ const CHANNELS: Channel[] = [
     flag: '🇬🇧',
     session: 'LONDON · GBP/EUR',
     color: '#00a0e9',
-    videoId: 'TvYc8RWJSAg', // new 24/7 official ID
+    videoId: 'YDvsBbKfLPA', // User provided working ID
   },
   {
     id: 'aljazeera',
@@ -43,15 +43,15 @@ const CHANNELS: Channel[] = [
     flag: '🇶🇦',
     session: 'MIDDLE EAST · FX',
     color: '#e63946',
-    videoId: 'gCNeDWCI0vo', // new 24/7 official ID
+    videoId: 'gCNeDWCI0vo',
   },
   {
-    id: 'france24',
-    label: 'France 24',
-    flag: '🇫🇷',
-    session: 'EUROPE · EUR',
-    color: '#2dc6a0',
-    videoId: 'h3MuIUNCRNk', // Standard 24/7 ID
+    id: 'cna',
+    label: 'CNA News',
+    flag: '🇸🇬',
+    session: 'ASIA PACIFIC · SGD',
+    color: '#e63946',
+    videoId: 'XWq5kBlakcQ', // User provided new ID
   },
 ];
 
