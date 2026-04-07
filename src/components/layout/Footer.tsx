@@ -41,26 +41,28 @@ export default function TerminalFooter() {
       }
     }, 3000);
 
-    // Latency: measure round-trip to Finnhub via small fetch
+    // Latency: measure round-trip to our own edge server
     const pingInterval = setInterval(async () => {
       const t0 = performance.now();
       try {
-        await fetch('https://finnhub.io/api/v1/quote?symbol=AAPL&token=' + process.env.NEXT_PUBLIC_FINNHUB_TOKEN, {
+        await fetch(window.location.origin, {
           method: 'HEAD',
           cache: 'no-store',
         });
+        const t1 = performance.now();
+        setLatency(Math.round(t1 - t0));
       } catch {
-        // fallback: measure a local API call
+        // network offline or adblocker
       }
-      const t1 = performance.now();
-      setLatency(Math.round(t1 - t0));
     }, 10000); // every 10s
 
     // Initial latency ping
     (async () => {
       const t0 = performance.now();
-      try { await fetch('/api/health', { cache: 'no-store' }); } catch { /* ok */ }
-      setLatency(Math.round(performance.now() - t0));
+      try { 
+        await fetch(window.location.origin, { method: 'HEAD', cache: 'no-store' }); 
+        setLatency(Math.round(performance.now() - t0));
+      } catch { /* ok */ }
     })();
 
     return () => {

@@ -136,7 +136,6 @@ function TVFrame({ channel, big = false, startsMuted = true }: { channel: Channe
           pointerEvents: 'none' // completely prevents clicking the video and pausing/navigating
         }}
         allow="autoplay; encrypted-media; fullscreen"
-        allowFullScreen
         title={channel.label}
       />
 

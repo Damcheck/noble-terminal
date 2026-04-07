@@ -47,8 +47,9 @@ export default function RootLayout({
     <html
       lang="en"
       className={`${outfit.variable} ${firaCode.variable}`}
+      suppressHydrationWarning
     >
-      <body className="terminal-root">
+      <body className="terminal-root" suppressHydrationWarning>
         <SecurityWrapper>
           {children}
         </SecurityWrapper>
