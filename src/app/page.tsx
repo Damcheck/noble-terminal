@@ -201,6 +201,10 @@ export default function TerminalPage() {
             margin={[4, 4]}
             containerPadding={[0, 0]}
             // @ts-ignore
+            isDraggable={width > 768}
+            // @ts-ignore
+            isResizable={width > 768}
+            // @ts-ignore
             draggableHandle=".drag-handle"
             style={{ minHeight: '100%' }}
           >
