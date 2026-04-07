@@ -50,6 +50,7 @@ export const useMarketStore = create<MarketState>((set, get) => ({
 
   initializeRealtime: () => {
     if (get().isRealtimeConnected) return;
+    set({ isRealtimeConnected: true }); // Sync lock to prevent React StrictMode double-fire
 
     // Fetch initial baseline data from Postgres natively first
     supabase

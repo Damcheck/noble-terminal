@@ -45,6 +45,7 @@ export const useNewsStore = create<NewsState>((set, get) => ({
 
   initializeRealtime: () => {
     if (get().isRealtimeConnected) return;
+    set({ isRealtimeConnected: true }); // Sync lock to prevent React StrictMode double-fire
 
     // Initial fetch
     supabase
