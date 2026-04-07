@@ -1,0 +1,16 @@
+name: 🔄 Cron — Forex (every 2m)
+on:
+  schedule:
+    - cron: '*/2 * * * *'
+  workflow_dispatch:
+
+jobs:
+  fetch-forex:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Trigger /api/cron/forex
+        run: |
+          curl -sf -X GET "${{ secrets.APP_URL }}/api/cron/forex" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -H "Accept: application/json" || echo "Forex fetch failed (non-fatal)"

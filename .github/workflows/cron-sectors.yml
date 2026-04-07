@@ -1,0 +1,16 @@
+name: 🔄 Cron — Sectors (every 15m)
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+
+jobs:
+  fetch-sectors:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Trigger /api/cron/sectors
+        run: |
+          curl -sf -X GET "${{ secrets.APP_URL }}/api/cron/sectors" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -H "Accept: application/json" || echo "Sectors fetch failed (non-fatal)"

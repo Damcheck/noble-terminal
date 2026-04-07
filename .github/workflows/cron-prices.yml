@@ -1,0 +1,16 @@
+name: 🔄 Cron — Market Prices (every 5m)
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+
+jobs:
+  fetch-prices:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Trigger /api/cron/prices
+        run: |
+          curl -sf -X GET "${{ secrets.APP_URL }}/api/cron/prices" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -H "Accept: application/json" || echo "Prices fetch failed (non-fatal)"

@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
+import { verifyCronAuth } from '@/lib/cronAuth'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL || '',
@@ -19,8 +20,11 @@ const SYMBOL_MAP: Record<string, string> = {
 
 export const revalidate = 0
 
-export async function GET() {
-  try {
+export async function GET(request: NextRequest) {
+  const authError = verifyCronAuth(request)
+  if (authError) return authError
+
+    try {
     const ids = COINS.join(',')
 
     // CoinGecko free tier — no API key required for /simple/price

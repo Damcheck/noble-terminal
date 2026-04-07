@@ -1,0 +1,16 @@
+name: 🔄 Cron — Crypto (every 3m)
+on:
+  schedule:
+    - cron: '*/3 * * * *'
+  workflow_dispatch:
+
+jobs:
+  fetch-crypto:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Trigger /api/cron/crypto
+        run: |
+          curl -sf -X GET "${{ secrets.APP_URL }}/api/cron/crypto" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -H "Accept: application/json" || echo "Crypto fetch failed (non-fatal)"

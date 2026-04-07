@@ -1,0 +1,28 @@
+name: 🔄 Cron — Macro + Yields + Calendar (every 6h)
+on:
+  schedule:
+    - cron: '0 */6 * * *'
+  workflow_dispatch:
+
+jobs:
+  fetch-slow-data:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Trigger /api/cron/macro
+        run: |
+          curl -sf -X GET "${{ secrets.APP_URL }}/api/cron/macro" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -H "Accept: application/json" || echo "Macro fetch failed (non-fatal)"
+
+      - name: Trigger /api/cron/yields
+        run: |
+          curl -sf -X GET "${{ secrets.APP_URL }}/api/cron/yields" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -H "Accept: application/json" || echo "Yields fetch failed (non-fatal)"
+
+      - name: Trigger /api/cron/calendar
+        run: |
+          curl -sf -X GET "${{ secrets.APP_URL }}/api/cron/calendar" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -H "Accept: application/json" || echo "Calendar fetch failed (non-fatal)"

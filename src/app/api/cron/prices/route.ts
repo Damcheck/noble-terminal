@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
+import { verifyCronAuth } from '@/lib/cronAuth'
 import yahooFinance from 'yahoo-finance2'
 
 const supabase = createClient(
@@ -20,8 +21,11 @@ const SYMBOLS = [
 
 export const revalidate = 0
 
-export async function GET(request: Request) {
-  try {
+export async function GET(request: NextRequest) {
+  const authError = verifyCronAuth(request)
+  if (authError) return authError
+
+    try {
     // Suppress yahoo-finance2 survey notice in logs
     // // yahooFinance.suppressNotices(['yahooSurvey'])
 
