@@ -32,8 +32,8 @@ export function MacroPanel() {
       const ind = indicators[cfg.series_id];
       const fallback = MOCK_MACRO.find(m => m.label === cfg.label);
       
-      let baseValue = ind?.value ?? fallback?.value ?? 0;
-      let change = ind?.change_pct ?? fallback?.change ?? 0;
+      let baseValue = parseFloat((ind?.value ?? fallback?.value ?? 0).toString());
+      let change = parseFloat((ind?.change_pct ?? fallback?.change ?? 0).toString());
 
       // Only add noise to live-moving macro elements (VIX, DXY, Bonds)
       // Fed Rate, CPI, Unemployment stay static until released
@@ -75,7 +75,7 @@ export function MacroPanel() {
                   {m.label}
                 </div>
                 <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', fontFamily: 'var(--font-mono)' }}>
-                  {m.value.toFixed(m.value < 10 ? 3 : 2)}{m.unit}
+                  {typeof m.value === 'number' ? m.value.toFixed(m.value < 10 ? 3 : 2) : m.value}{m.unit}
                 </div>
                 {m.change !== 0 && (
                   <div style={{ fontSize: 9, color: up ? '#44ff88' : '#ff4444', marginTop: 2, fontFamily: 'var(--font-mono)' }}>
