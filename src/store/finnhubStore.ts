@@ -24,6 +24,10 @@ export const FINNHUB_SYMBOLS: Record<string, string> = {
   'OANDA:USD_JPY':     'USDJPY',
   'OANDA:GBP_JPY':     'GBPJPY',
   'OANDA:USD_CAD':     'USDCAD',
+  'OANDA:AUD_USD':     'AUDUSD',
+  'OANDA:NZD_USD':     'NZDUSD',
+  'OANDA:EUR_GBP':     'EURGBP',
+  'OANDA:USD_CHF':     'USDCHF',
   'OANDA:XAU_USD':     'XAUUSD',
   'OANDA:XAG_USD':     'XAGUSD',
   // Commodities

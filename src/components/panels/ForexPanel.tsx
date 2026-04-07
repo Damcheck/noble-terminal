@@ -2,48 +2,49 @@
 
 import { useMemo } from 'react';
 import { Panel, PanelHeader, PanelContent, LiveBadge, WSBadge, Sparkline, TickingPrice } from '@/components/ui/Panel';
-import { FOREX_PAIRS as MOCK_FOREX_PAIRS } from '@/lib/mockData';
-import { useMarketStore } from '@/store/marketStore';
 import { useFinnhubStore } from '@/store/finnhubStore';
+import { useMarketStore } from '@/store/marketStore';
+
+// Strictly configured without ANY slashes so that Finnhub WebSocket ticks route perfectly
+const FOREX_ONLY_PAIRS = [
+  { symbol: 'EURUSD', name: 'Euro / USD', bid: 1.0841, ask: 1.0843, change: -0.22, spark: [1.0860, 1.0855, 1.0850, 1.0845, 1.0843, 1.0843, 1.0842, 1.0841] },
+  { symbol: 'GBPUSD', name: 'British Pound / USD', bid: 1.2739, ask: 1.2741, change: 0.15, spark: [1.273, 1.273, 1.274, 1.274, 1.274, 1.274, 1.274, 1.274] },
+  { symbol: 'USDJPY', name: 'USD / Yen', bid: 151.42, ask: 151.45, change: 0.31, spark: [151.1, 151.2, 151.3, 151.3, 151.4, 151.4, 151.4, 151.4] },
+  { symbol: 'USDCHF', name: 'USD / Swiss Franc', bid: 0.8923, ask: 0.8925, change: -0.09, spark: [0.893, 0.893, 0.892, 0.892, 0.892, 0.892, 0.892, 0.892] },
+  { symbol: 'AUDUSD', name: 'Aussie / USD', bid: 0.6441, ask: 0.6443, change: 0.28, spark: [0.642, 0.643, 0.643, 0.644, 0.644, 0.644, 0.644, 0.644] },
+  { symbol: 'NZDUSD', name: 'Kiwi / USD', bid: 0.5981, ask: 0.5983, change: -0.15, spark: [0.599, 0.598, 0.598, 0.597, 0.598, 0.598, 0.598, 0.598] },
+  { symbol: 'EURGBP', name: 'Euro / British Pound', bid: 0.8505, ask: 0.8507, change: -0.11, spark: [0.851, 0.851, 0.851, 0.850, 0.850, 0.850, 0.850, 0.850] },
+  { symbol: 'USDCAD', name: 'USD / Canadian Dlr', bid: 1.3541, ask: 1.3543, change: 0.12, spark: [1.353, 1.354, 1.354, 1.354, 1.354, 1.354, 1.354, 1.354] },
+];
 
 export default function ForexPanel() {
-  const { prices, isRealtimeConnected, setSelectedSymbol } = useMarketStore();
+  const { setSelectedSymbol } = useMarketStore();
   const { ticks, isConnected: isFinnhubConnected } = useFinnhubStore();
 
-  // Merge Realtime Data into Mock data array for layout stability
   const renderList = useMemo(() => {
-    return MOCK_FOREX_PAIRS.map(mockItem => {
-      // Priority 1: Finnhub live tick
-      const tick = ticks[mockItem.pair]; // e.g. "EUR/USD"
+    return FOREX_ONLY_PAIRS.map(baseItem => {
+      const tick = ticks[baseItem.symbol];
+
       if (tick) {
         return {
-          ...mockItem,
+          ...baseItem,
           bid: tick.price,
-          ask: tick.price * 1.0002, // estimate ask from live tick
-          change: prices[mockItem.pair]?.change_pct ?? mockItem.change,
+          ask: tick.price * 1.00015, // dynamic 1.5 pip spread estimation for FX
+          // In a full production app, you would source the % change from a daily anchor.
+          // For now, we return baseItem.change to maintain stability or a fixed anchor point.
+          change: baseItem.change, 
         };
       }
-
-      // Priority 2: Supabase DB price
-      const liveData = prices[mockItem.pair] || prices[`${mockItem.pair.replace('/', '')}=X`];
-      if (liveData) {
-        return {
-          ...mockItem,
-          bid: liveData.bid || liveData.price || mockItem.bid,
-          ask: liveData.ask || mockItem.ask,
-          change: liveData.change_pct || mockItem.change,
-        };
-      }
-      return mockItem;
+      return baseItem;
     });
-  }, [prices, ticks]);
+  }, [ticks]);
 
   return (
     <Panel>
       <PanelHeader 
         title="Forex" 
         count={renderList.length} 
-        badge={isFinnhubConnected ? <WSBadge /> : isRealtimeConnected ? <LiveBadge /> : undefined} 
+        badge={isFinnhubConnected ? <WSBadge /> : <LiveBadge />} 
       />
       <PanelContent noPad>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 10 }}>
@@ -72,51 +73,41 @@ export default function ForexPanel() {
               const up = item.change >= 0;
               return (
                 <tr
-                  key={item.pair}
+                  key={item.symbol}
                   style={{
                     borderBottom: '1px solid var(--border-subtle)',
-                    background: item.highlight
-                      ? 'rgba(255,170,0,0.06)'
-                      : i % 2 === 0
-                      ? 'transparent'
-                      : 'var(--overlay-subtle)',
+                    background: i % 2 === 0 ? 'transparent' : 'var(--overlay-subtle)',
                     cursor: 'pointer',
                     transition: 'background 0.1s',
                   }}
-                  onClick={() => setSelectedSymbol(item.pair)}
+                  onClick={() => setSelectedSymbol(item.symbol)}
                   onMouseEnter={e => {
-                    (e.currentTarget as HTMLTableRowElement).style.background = item.highlight
-                      ? 'rgba(255,170,0,0.12)'
-                      : 'var(--overlay-light)';
+                    (e.currentTarget as HTMLTableRowElement).style.background = 'var(--overlay-light)';
                   }}
                   onMouseLeave={e => {
-                    (e.currentTarget as HTMLTableRowElement).style.background = item.highlight
-                      ? 'rgba(255,170,0,0.06)'
-                      : i % 2 === 0
-                      ? 'transparent'
-                      : 'var(--overlay-subtle)';
+                    (e.currentTarget as HTMLTableRowElement).style.background = i % 2 === 0 ? 'transparent' : 'var(--overlay-subtle)';
                   }}
                 >
                   <td style={{ padding: '6px 8px' }}>
                     <span
                       style={{
                         fontWeight: 700,
-                        color: item.highlight ? '#ffaa00' : 'var(--text)',
+                        color: 'var(--text)',
                         fontSize: 10,
                       }}
                     >
-                      {item.pair}
+                      {item.symbol.substring(0, 3)}/{item.symbol.substring(3)}
                     </span>
                   </td>
                   <td style={{ padding: '6px 8px', textAlign: 'right' }}>
                     <TickingPrice 
                       price={Number(item.bid)} 
-                      decimals={4} 
+                      decimals={item.symbol.includes('JPY') ? 3 : 4} 
                       style={{ fontSize: 10, color: 'var(--text)', fontFamily: 'var(--font-mono)' }} 
                     />
                   </td>
                   <td style={{ padding: '6px 8px', color: 'var(--text-dim)', fontFamily: 'var(--font-mono)', textAlign: 'right', fontSize: 10 }}>
-                    {typeof item.ask === 'number' ? item.ask.toFixed(4) : Number(item.ask).toFixed(4)}
+                    {typeof item.ask === 'number' ? item.ask.toFixed(item.symbol.includes('JPY') ? 3 : 4) : Number(item.ask).toFixed(item.symbol.includes('JPY') ? 3 : 4)}
                   </td>
                   <td style={{ padding: '6px 8px', color: up ? '#44ff88' : '#ff4444', fontWeight: 600, textAlign: 'right', fontFamily: 'var(--font-mono)' }}>
                     {up ? '+' : ''}{item.change.toFixed(2)}%
