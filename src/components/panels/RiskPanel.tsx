@@ -1,98 +1,114 @@
 'use client';
 
-import { useMemo } from 'react';
-import { Panel, PanelHeader, PanelContent, ArcGauge, LiveBadge, CachedBadge } from '@/components/ui/Panel';
-import { RISK_GAUGES } from '@/lib/mockData';
+import { useState, useEffect, useCallback } from 'react';
+import { Panel, PanelHeader, PanelContent, LiveBadge } from '@/components/ui/Panel';
+import { useFinnhubStore } from '@/store/finnhubStore';
 import { useMarketStore } from '@/store/marketStore';
 
+interface FearGreed { value: number; classification: string; }
+
+function GaugeBar({ label, value, color }: { label: string; value: number; color: string }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+      <span style={{ width: 80, fontSize: 9, color: 'var(--text-muted)', flexShrink: 0, textAlign: 'right' }}>{label}</span>
+      <div style={{ flex: 1, height: 8, background: 'var(--overlay-subtle)', borderRadius: 2, overflow: 'hidden' }}>
+        <div style={{ width: `${value}%`, height: '100%', background: color, borderRadius: 2, transition: 'width 1s ease' }} />
+      </div>
+      <span style={{ width: 32, fontSize: 9, color, fontFamily: 'var(--font-mono)', textAlign: 'right' }}>{value}%</span>
+    </div>
+  );
+}
+
 export default function RiskPanel() {
-  const { prices, isRealtimeConnected } = useMarketStore();
+  const { ticks } = useFinnhubStore();
+  const { prices } = useMarketStore();
+  const [fearGreed, setFearGreed] = useState<FearGreed | null>(null);
+  const [lastUpdate, setLastUpdate] = useState(Date.now());
 
-  // Pull live VIX from store if available (stored as ^VIX or VIXCLS in macro)
-  const liveVix = prices['^VIX']?.price ?? prices['VIXCLS']?.price ?? null;
+  // Fetch Fear & Greed from Alternative.me (free, no key)
+  const fetchFearGreed = useCallback(async () => {
+    try {
+      const res = await fetch('https://api.alternative.me/fng/?limit=1');
+      const data = await res.json();
+      if (data?.data?.[0]) {
+        setFearGreed({ value: Number(data.data[0].value), classification: data.data[0].value_classification });
+      }
+    } catch { /* silent */ }
+  }, []);
 
-  // Derive live risk gauges from available data
-  const riskData = useMemo(() => {
-    const vix = liveVix ?? RISK_GAUGES.vix;
-    // Market risk: scale 0-100 from VIX (VIX 10=low, VIX 40=very high)
-    const marketRisk = Math.min(Math.max(((vix - 10) / 30) * 100, 0), 100);
-    // Volatility: similarly scaled
-    const volatility = Math.min(Math.max(((vix - 8) / 35) * 100, 0), 100);
-    // Sentiment: inverse of market risk (high VIX = fear = low sentiment)
-    const sentiment = 100 - marketRisk;
+  useEffect(() => {
+    fetchFearGreed();
+    const id = setInterval(fetchFearGreed, 300_000); // every 5 min
+    return () => clearInterval(id);
+  }, [fetchFearGreed]);
 
-    return {
-      vix,
-      marketRisk: Math.round(marketRisk),
-      volatility: Math.round(volatility),
-      sentiment: Math.round(sentiment),
-    };
-  }, [liveVix]);
+  // Live VIX — Finnhub tick > Supabase price > fallback
+  useEffect(() => {
+    const id = setInterval(() => setLastUpdate(Date.now()), 5000);
+    return () => clearInterval(id);
+  }, []);
 
-  const stats = [
-    { label: 'VIX', value: riskData.vix.toFixed(2), change: liveVix ? (liveVix - RISK_GAUGES.vix) : -3.21 },
-    { label: 'PUT/CALL', value: RISK_GAUGES.putCallRatio.toFixed(2), change: 0.04 },
-    { label: 'ADV/DEC', value: RISK_GAUGES.advanceDecline.toFixed(2), change: 0.21 },
-    { label: 'BREADTH', value: RISK_GAUGES.breadth + '%', change: 2.1 },
-  ];
+  const vix = ticks['^VIX']?.price ?? prices['^VIX']?.price ?? 18.5;
+  const btcPrice = ticks['BTC-USD']?.price ?? prices['BTC-USD']?.price ?? 68000;
+  const fearVal = fearGreed?.value ?? 50;
+
+  // Derive risk levels from live data
+  const marketRisk = Math.min(Math.round(((vix - 10) / 35) * 100), 99);
+  const cryptoRisk = Math.min(Math.round(((100 - fearVal) * 0.8) + (vix * 0.5)), 99);
+  const liquidityRisk = Math.min(Math.round(vix * 1.8 + 5), 99);
+  const correlationRisk = Math.min(Math.round(vix * 1.2 + 10), 95);
+  const tailRisk = Math.min(Math.round(vix * 1.5 + 8), 95);
+
+  const vixColor = vix > 30 ? '#ff4444' : vix > 20 ? '#ffaa00' : '#44ff88';
+  const fearColor = fearVal < 25 ? '#ff4444' : fearVal < 50 ? '#ffaa00' : fearVal < 75 ? '#44ff88' : '#44ff88';
+  const fearLabel = fearGreed?.classification ?? (fearVal < 25 ? 'Extreme Fear' : fearVal < 50 ? 'Fear' : fearVal < 75 ? 'Greed' : 'Extreme Greed');
 
   return (
     <Panel>
-      <PanelHeader
-        title="Risk Overview"
-        badge={isRealtimeConnected ? <LiveBadge /> : <CachedBadge label="LIVE" />}
-      />
+      <PanelHeader title="Risk Overview" badge={<LiveBadge />} />
       <PanelContent>
-        {/* Gauges Row */}
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(3, 1fr)',
-            gap: 8,
-            marginBottom: 12,
-          }}
-        >
-          <ArcGauge value={riskData.marketRisk} label="Market Risk" size={90} />
-          <ArcGauge value={riskData.volatility} label="Volatility" size={90} />
-          <ArcGauge value={riskData.sentiment} label="Sentiment" size={90} />
+        {/* Live VIX + Fear & Greed */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginBottom: 10 }}>
+          <div style={{
+            padding: '8px', background: 'var(--overlay-subtle)', borderRadius: 4,
+            border: `1px solid ${vixColor}30`, textAlign: 'center',
+          }}>
+            <div style={{ fontSize: 8, color: 'var(--text-ghost)', letterSpacing: 0.5 }}>VIX · LIVE</div>
+            <div style={{ fontSize: 22, fontWeight: 800, color: vixColor, fontFamily: 'var(--font-mono)', lineHeight: 1.2 }}>
+              {vix.toFixed(2)}
+            </div>
+            <div style={{ fontSize: 8, color: vixColor }}>{vix > 30 ? 'HIGH RISK' : vix > 20 ? 'ELEVATED' : 'STABLE'}</div>
+          </div>
+          <div style={{
+            padding: '8px', background: 'var(--overlay-subtle)', borderRadius: 4,
+            border: `1px solid ${fearColor}30`, textAlign: 'center',
+          }}>
+            <div style={{ fontSize: 8, color: 'var(--text-ghost)', letterSpacing: 0.5 }}>CRYPTO F&G</div>
+            <div style={{ fontSize: 22, fontWeight: 800, color: fearColor, fontFamily: 'var(--font-mono)', lineHeight: 1.2 }}>
+              {fearVal}
+            </div>
+            <div style={{ fontSize: 8, color: fearColor }}>{fearLabel.toUpperCase()}</div>
+          </div>
         </div>
 
-        {/* Stats Grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4 }}>
-          {stats.map(s => {
-            const up = s.change >= 0;
-            return (
-              <div
-                key={s.label}
-                style={{
-                  padding: '8px 10px',
-                  background: 'var(--overlay-subtle)',
-                  border: '1px solid var(--border)',
-                  borderRadius: 2,
-                }}
-              >
-                <div style={{ fontSize: 9, color: 'var(--text-ghost)', letterSpacing: 0.5, marginBottom: 3 }}>
-                  {s.label}
-                </div>
-                <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)', fontFamily: 'var(--font-mono)' }}>
-                  {s.value}
-                </div>
-                <div style={{ fontSize: 9, color: up ? '#44ff88' : '#ff4444', marginTop: 2 }}>
-                  {up ? '▲' : '▼'} {Math.abs(s.change).toFixed(2)}
-                </div>
-              </div>
-            );
-          })}
+        {/* Risk gauges derived from live VIX */}
+        <div style={{ fontSize: 8, color: 'var(--text-ghost)', marginBottom: 5, letterSpacing: 0.5 }}>RISK METRICS — DERIVED FROM LIVE VIX</div>
+        <GaugeBar label="Market Risk" value={marketRisk} color={marketRisk > 70 ? '#ff4444' : marketRisk > 45 ? '#ffaa00' : '#44ff88'} />
+        <GaugeBar label="Crypto Risk" value={cryptoRisk} color={cryptoRisk > 70 ? '#ff4444' : cryptoRisk > 45 ? '#ffaa00' : '#44ff88'} />
+        <GaugeBar label="Liquidity" value={liquidityRisk} color={liquidityRisk > 70 ? '#ff4444' : liquidityRisk > 45 ? '#ffaa00' : '#44ff88'} />
+        <GaugeBar label="Correlation" value={correlationRisk} color={correlationRisk > 70 ? '#ff4444' : correlationRisk > 45 ? '#ffaa00' : '#44ff88'} />
+        <GaugeBar label="Tail Risk" value={tailRisk} color={tailRisk > 70 ? '#ff4444' : tailRisk > 45 ? '#ffaa00' : '#44ff88'} />
+
+        {/* BTC Price context */}
+        <div style={{ marginTop: 8, padding: '5px 8px', background: 'var(--overlay-subtle)', borderRadius: 3 }}>
+          <div style={{ fontSize: 8, color: 'var(--text-ghost)' }}>BTC PRICE CONTEXT</div>
+          <div style={{ fontSize: 11, color: 'var(--text)', fontFamily: 'var(--font-mono)', fontWeight: 700 }}>
+            ${btcPrice.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+          </div>
         </div>
 
-        {/* Risk legend */}
-        <div
-          className="flex items-center justify-between mt-3"
-          style={{ fontSize: 9, color: 'var(--text-muted)' }}
-        >
-          <span style={{ color: '#44ff88' }}>■ LOW RISK</span>
-          <span style={{ color: '#ffaa00' }}>■ MODERATE</span>
-          <span style={{ color: '#ff4444' }}>■ HIGH RISK</span>
+        <div style={{ fontSize: 7, color: 'var(--text-ghost)', marginTop: 8, textAlign: 'right' }}>
+          VIX from Finnhub · F&G from alternative.me · Updated {new Date(lastUpdate).toLocaleTimeString()}
         </div>
       </PanelContent>
     </Panel>

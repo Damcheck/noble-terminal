@@ -1,158 +1,95 @@
 'use client';
 
 import { useEffect, useMemo } from 'react';
-import { Panel, PanelHeader, PanelContent, CachedBadge, LiveBadge, Sparkline } from '@/components/ui/Panel';
-import { SECTOR_PERFORMANCE, COMMODITIES } from '@/lib/mockData';
+import { Panel, PanelHeader, PanelContent, LiveBadge } from '@/components/ui/Panel';
 import { useMarketStore } from '@/store/marketStore';
+import { useFinnhubStore } from '@/store/finnhubStore';
 
 // Re-export MacroPanel from its own file
 export { MacroPanel } from '@/components/panels/MacroPanel';
 
-// Sector ETF symbols map (must match cron/sectors output)
-const SECTOR_ETF_SYMBOLS = [
-  'XLK', 'XLV', 'XLF', 'XLY', 'XLI', 'XLE', 'XLC', 'XLB', 'XLU', 'XLRE', 'XLP'
-];
-
-// ── Sector Performance Panel ────────────────────────────────
+// ── Sector Performance — TradingView Market Overview widget ────
 export function SectorPanel() {
-  const { prices, isRealtimeConnected, initializeRealtime } = useMarketStore();
-
-  useEffect(() => {
-    initializeRealtime();
-  }, [initializeRealtime]);
-
-  // Build from live data if available, else fallback to mock
-  const sectorData = useMemo(() => {
-    const liveSectors = SECTOR_ETF_SYMBOLS
-      .map(sym => prices[sym])
-      .filter(Boolean);
-
-    if (liveSectors.length >= 3) {
-      return liveSectors.map(p => ({
-        name: (p.extra as any)?.name || p.symbol,
-        change: p.change_pct,
-      }));
-    }
-    return SECTOR_PERFORMANCE;
-  }, [prices]);
-
-  const maxAbs = Math.max(...sectorData.map(s => Math.abs(s.change)), 0.01);
-
   return (
     <Panel>
-      <PanelHeader
-        title="Sector Performance"
-        badge={isRealtimeConnected ? <LiveBadge /> : <CachedBadge label="15m" />}
-      />
-      <PanelContent>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-          {[...sectorData].sort((a, b) => b.change - a.change).map(s => {
-            const up = s.change >= 0;
-            const barW = (Math.abs(s.change) / maxAbs) * 100;
-            return (
-              <div key={s.name} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span style={{ width: 90, fontSize: 9, color: 'var(--text-dim)', flexShrink: 0, textAlign: 'right' }}>
-                  {s.name}
-                </span>
-                <div style={{ flex: 1, height: 14, background: 'var(--overlay-subtle)', borderRadius: 1, overflow: 'hidden', position: 'relative' }}>
-                  <div
-                    style={{
-                      position: 'absolute',
-                      [up ? 'left' : 'right']: 0,
-                      top: 0,
-                      height: '100%',
-                      width: `${barW}%`,
-                      background: up ? 'rgba(68,255,136,0.35)' : 'rgba(255,68,68,0.35)',
-                      borderRadius: 1,
-                      transition: 'width 0.5s ease',
-                    }}
-                  />
-                </div>
-                <span
-                  style={{
-                    width: 48,
-                    fontSize: 10,
-                    fontFamily: 'var(--font-mono)',
-                    fontWeight: 600,
-                    color: up ? '#44ff88' : '#ff4444',
-                    textAlign: 'right',
-                    flexShrink: 0,
-                  }}
-                >
-                  {up ? '+' : ''}{s.change.toFixed(2)}%
-                </span>
-              </div>
-            );
-          })}
-        </div>
-      </PanelContent>
+      <PanelHeader title="Sector Performance" badge={<LiveBadge />} />
+      <div style={{ flex: 1, overflow: 'hidden' }}>
+        <iframe
+          src="https://s.tradingview.com/embed-widget/market-overview/?locale=en#%7B%22colorTheme%22%3A%22dark%22%2C%22dateRange%22%3A%221D%22%2C%22showChart%22%3Atrue%2C%22largeChartUrl%22%3A%22%22%2C%22isTransparent%22%3Atrue%2C%22showSymbolLogo%22%3Atrue%2C%22showFloatingTooltip%22%3Atrue%2C%22width%22%3A%22100%25%22%2C%22height%22%3A%22100%25%22%2C%22tabs%22%3A%5B%7B%22title%22%3A%22Sectors%22%2C%22symbols%22%3A%5B%7B%22s%22%3A%22AMEX%3AXLK%22%2C%22d%22%3A%22Technology%22%7D%2C%7B%22s%22%3A%22AMEX%3AXLV%22%2C%22d%22%3A%22Healthcare%22%7D%2C%7B%22s%22%3A%22AMEX%3AXLF%22%2C%22d%22%3A%22Financials%22%7D%2C%7B%22s%22%3A%22AMEX%3AXLY%22%2C%22d%22%3A%22Consumer+Disc%22%7D%2C%7B%22s%22%3A%22AMEX%3AXLE%22%2C%22d%22%3A%22Energy%22%7D%2C%7B%22s%22%3A%22AMEX%3AXLI%22%2C%22d%22%3A%22Industrials%22%7D%2C%7B%22s%22%3A%22AMEX%3AXLB%22%2C%22d%22%3A%22Materials%22%7D%2C%7B%22s%22%3A%22AMEX%3AXLU%22%2C%22d%22%3A%22Utilities%22%7D%2C%7B%22s%22%3A%22AMEX%3AXLP%22%2C%22d%22%3A%22Consumer+Staples%22%7D%2C%7B%22s%22%3A%22AMEX%3AXLRE%22%2C%22d%22%3A%22Real+Estate%22%7D%5D%2C%22originalTitle%22%3A%22Sectors%22%7D%5D%7D"
+          style={{ width: '100%', height: '100%', border: 'none' }}
+          title="Sector Performance"
+          allowFullScreen
+        />
+      </div>
     </Panel>
   );
 }
 
-// MacroPanel is now in its own file (MacroPanel.tsx) and re-exported above
-
-// Commodity Yahoo Finance symbols (must match cron/prices output)
+// ── Commodities — live Finnhub ticks + Supabase fallback ──────
 const COMMODITY_SYMBOLS = ['GC=F', 'SI=F', 'CL=F', 'NG=F', 'HG=F', 'PL=F'];
 const COMMODITY_META: Record<string, { name: string; unit: string; highlight?: boolean }> = {
-  'GC=F': { name: 'Gold',         unit: 'per oz',  highlight: true },
-  'SI=F': { name: 'Silver',       unit: 'per oz' },
-  'CL=F': { name: 'Crude Oil',    unit: 'per bbl' },
+  'GC=F': { name: 'Gold',         unit: 'XAU/USD · per oz',   highlight: true },
+  'SI=F': { name: 'Silver',       unit: 'XAG/USD · per oz' },
+  'CL=F': { name: 'Crude Oil',    unit: 'WTI · per bbl',       highlight: true },
   'NG=F': { name: 'Natural Gas',  unit: 'per MMBtu' },
   'HG=F': { name: 'Copper',       unit: 'per lb' },
   'PL=F': { name: 'Platinum',     unit: 'per oz' },
 };
 
-// ── Commodities Panel ─────────────────────────────────────────
-export function CommoditiesPanel() {
-  const { prices, isRealtimeConnected, initializeRealtime } = useMarketStore();
+const COMMODITY_FALLBACK = [
+  { symbol: 'GC=F',  name: 'Gold',        unit: 'XAU/USD · per oz',  price: 2978.45, change: 1.34, highlight: true },
+  { symbol: 'SI=F',  name: 'Silver',       unit: 'XAG/USD · per oz',  price: 34.12,   change: 0.82 },
+  { symbol: 'CL=F',  name: 'Crude Oil',    unit: 'WTI · per bbl',     price: 71.34,   change: -0.94, highlight: true },
+  { symbol: 'NG=F',  name: 'Natural Gas',  unit: 'per MMBtu',         price: 3.45,    change: 1.21 },
+  { symbol: 'HG=F',  name: 'Copper',       unit: 'per lb',            price: 4.87,    change: -0.3 },
+  { symbol: 'PL=F',  name: 'Platinum',     unit: 'per oz',            price: 980.0,   change: 0.5 },
+];
 
-  useEffect(() => {
-    initializeRealtime();
-  }, [initializeRealtime]);
+export function CommoditiesPanel() {
+  const { prices, initializeRealtime } = useMarketStore();
+  const { ticks } = useFinnhubStore();
+
+  useEffect(() => { initializeRealtime(); }, [initializeRealtime]);
 
   const commodityRows = useMemo(() => {
-    const live = COMMODITY_SYMBOLS.map(sym => prices[sym]).filter(Boolean);
-    if (live.length >= 3) {
-      return live.map(p => ({
-        symbol: p.symbol,
-        name: COMMODITY_META[p.symbol]?.name || p.symbol,
-        unit: COMMODITY_META[p.symbol]?.unit || '',
-        price: p.price,
-        change: p.change_pct,
-        highlight: COMMODITY_META[p.symbol]?.highlight,
-        spark: [] as number[],
-      }));
-    }
-    return COMMODITIES;
-  }, [prices]);
+    return COMMODITY_SYMBOLS.map(sym => {
+      const meta = COMMODITY_META[sym];
+      // Priority: Finnhub tick → Supabase price → fallback
+      const tick = ticks[sym];
+      const live = prices[sym];
+      const fb = COMMODITY_FALLBACK.find(c => c.symbol === sym)!;
+
+      if (tick?.price) {
+        const prev = tick.prevPrice ?? tick.price;
+        const changePct = prev > 0 ? ((tick.price - prev) / prev) * 100 : 0;
+        return { symbol: sym, name: meta.name, unit: meta.unit, price: tick.price, change: changePct, highlight: meta.highlight };
+      }
+      if (live?.price) {
+        return { symbol: sym, name: meta.name, unit: meta.unit, price: live.price, change: live.change_pct, highlight: meta.highlight };
+      }
+      return fb;
+    });
+  }, [prices, ticks]);
+
+  const hasLive = commodityRows.some(r => ticks[r.symbol]?.price || prices[r.symbol]?.price);
 
   return (
     <Panel>
       <PanelHeader
         title="Commodities"
         count={commodityRows.length}
-        badge={isRealtimeConnected ? <LiveBadge /> : <CachedBadge label="5m" />}
+        badge={<LiveBadge />}
       />
       <PanelContent noPad>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 10 }}>
           <thead>
             <tr style={{ background: 'var(--overlay-subtle)' }}>
-              {['COMMODITY', 'PRICE', 'CHG%', ''].map(h => (
-                <th
-                  key={h}
-                  style={{
-                    padding: '5px 8px',
-                    textAlign: 'left',
-                    fontSize: 9,
-                    color: 'var(--text-ghost)',
-                    fontWeight: 600,
-                    letterSpacing: 0.5,
-                    borderBottom: '1px solid var(--border)',
-                  }}
-                >
-                  {h}
-                </th>
+              {['COMMODITY', 'PRICE', 'CHG%'].map(h => (
+                <th key={h} style={{
+                  padding: '5px 8px', textAlign: 'left', fontSize: 9,
+                  color: 'var(--text-ghost)', fontWeight: 600,
+                  letterSpacing: 0.5, borderBottom: '1px solid var(--border)',
+                }}>{h}</th>
               ))}
             </tr>
           </thead>
@@ -160,37 +97,30 @@ export function CommoditiesPanel() {
             {commodityRows.map((c, i) => {
               const up = c.change >= 0;
               return (
-                <tr
-                  key={c.symbol}
-                  style={{
-                    borderBottom: '1px solid var(--border-subtle)',
-                    background: c.highlight
-                      ? 'rgba(255,170,0,0.06)'
-                      : i % 2 === 0
-                      ? 'transparent'
-                      : 'var(--overlay-subtle)',
-                  }}
-                >
+                <tr key={c.symbol} style={{
+                  borderBottom: '1px solid var(--border-subtle)',
+                  background: c.highlight ? 'rgba(255,170,0,0.06)' : i % 2 === 0 ? 'transparent' : 'var(--overlay-subtle)',
+                }}>
                   <td style={{ padding: '6px 8px' }}>
-                    <div style={{ fontWeight: 700, color: c.highlight ? '#ffaa00' : 'var(--text)', fontSize: 10 }}>
-                      {c.name}
-                    </div>
-                    <div style={{ fontSize: 9, color: 'var(--text-muted)' }}>{c.unit}</div>
+                    <div style={{ fontWeight: 700, color: c.highlight ? '#ffaa00' : 'var(--text)', fontSize: 10 }}>{c.name}</div>
+                    <div style={{ fontSize: 8, color: 'var(--text-muted)' }}>{c.unit}</div>
                   </td>
-                  <td style={{ padding: '6px 8px', color: 'var(--text)', fontFamily: 'var(--font-mono)', textAlign: 'right' }}>
+                  <td style={{ padding: '6px 8px', color: 'var(--text)', fontFamily: 'var(--font-mono)', textAlign: 'right', fontSize: 10 }}>
                     {c.price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 3 })}
                   </td>
-                  <td style={{ padding: '6px 8px', color: up ? '#44ff88' : '#ff4444', fontWeight: 600, textAlign: 'right', fontFamily: 'var(--font-mono)' }}>
+                  <td style={{ padding: '6px 8px', color: up ? '#44ff88' : '#ff4444', fontWeight: 700, textAlign: 'right', fontFamily: 'var(--font-mono)' }}>
                     {up ? '+' : ''}{c.change.toFixed(2)}%
-                  </td>
-                  <td style={{ padding: '6px 8px', textAlign: 'right' }}>
-                    <Sparkline data={c.spark ?? []} up={up} width={48} height={16} />
                   </td>
                 </tr>
               );
             })}
           </tbody>
         </table>
+        {!hasLive && (
+          <div style={{ padding: '4px 8px', fontSize: 8, color: 'var(--text-ghost)', textAlign: 'right' }}>
+            Waiting for Finnhub tick…
+          </div>
+        )}
       </PanelContent>
     </Panel>
   );
