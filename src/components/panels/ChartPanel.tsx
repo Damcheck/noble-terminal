@@ -8,17 +8,20 @@ export default function ChartPanel() {
   const { selectedSymbol } = useMarketStore();
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Convert our internal symbols to TradingView format
   let tvSymbol = selectedSymbol;
   if (tvSymbol.includes('/')) {
-    // Forex: EUR/USD -> OANDA:EURUSD, XAU/USD -> OANDA:XAUUSD
+    // Legacy support: EUR/USD -> OANDA:EURUSD
     tvSymbol = `OANDA:${tvSymbol.replace('/', '')}`;
   } else if (tvSymbol.includes('-')) {
     // Crypto: BTC-USD -> BINANCE:BTCUSDT
     const base = tvSymbol.split('-')[0];
     tvSymbol = `BINANCE:${base}USDT`;
+  } else if (tvSymbol.length === 6 && ['EUR', 'GBP', 'AUD', 'NZD', 'USD', 'JPY', 'CHF', 'CAD', 'XAU', 'XAG', 'XCU'].some(prefix => tvSymbol.startsWith(prefix))) {
+    // New exact match FX support: EURUSD -> OANDA:EURUSD
+    tvSymbol = `OANDA:${tvSymbol}`;
+  } else if (tvSymbol === 'USOIL' || tvSymbol === 'OIL30') {
+    tvSymbol = 'TVC:USOIL'; // TradingView standard for crude oil
   }
-  // Stocks: AAPL -> just AAPL (TradingView resolves it)
 
   const goFullscreen = useCallback(() => {
     if (!containerRef.current) return;

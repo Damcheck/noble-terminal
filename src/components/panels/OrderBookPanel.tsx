@@ -41,10 +41,32 @@ export default function OrderBookPanel() {
   // Use the globally selected symbol for the order book (maps FX_IDC:EURUSD to EURUSD)
   const cleanSymbol = selectedSymbol.split(':')[1] || selectedSymbol;
   
+  // ── Smart Fallbacks for instantaneous panel-switching fluidity ─────────
+  const getFallbackPrice = (sym: string) => {
+    if (sym === 'XAUUSD') return 2950.10;
+    if (sym === 'XAGUSD') return 33.85;
+    if (sym === 'USOIL' || sym === 'OIL30') return 71.34;
+    if (sym === 'EURUSD') return 1.0841;
+    if (sym === 'GBPUSD') return 1.2739;
+    if (sym === 'AUDUSD') return 0.6441;
+    if (sym === 'NZDUSD') return 0.5981;
+    if (sym === 'EURGBP') return 0.8505;
+    if (sym.includes('JPY')) return 151.42;
+    if (sym === 'USDCAD' || sym === 'USDCHF') return 1.3541;
+    if (sym === 'BTC-USD' || sym.includes('BTC')) return 83412.00;
+    if (sym === 'ETH-USD' || sym.includes('ETH')) return 3241.77;
+    // Stocks
+    if (sym === 'AAPL') return 213.18;
+    if (sym === 'MSFT') return 412.32;
+    if (sym === 'NVDA') return 875.40;
+    if (sym === 'TSLA') return 247.62;
+    return 1.000;
+  };
+
   const livePrice =
     ticks[cleanSymbol]?.price ||
     prices[cleanSymbol]?.price ||
-    (cleanSymbol.includes('JPY') ? 150.32 : cleanSymbol.includes('XAU') ? 2450.10 : 1.085);
+    getFallbackPrice(cleanSymbol);
 
   const book = useMemo(() => {
     const mid = livePrice;
