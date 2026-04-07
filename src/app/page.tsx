@@ -31,6 +31,7 @@ import DarkPoolPanel from '@/components/panels/DarkPoolPanel';
 import InsiderTradingPanel from '@/components/panels/InsiderTradingPanel';
 import CDSPanel from '@/components/panels/CDSPanel';
 import SupplyChainPanel from '@/components/panels/SupplyChainPanel';
+import BloombergTVPanel from '@/components/panels/BloombergTVPanel';
 
 // Chart must be dynamic (uses browser APIs)
 const ChartPanel = dynamic(() => import('@/components/panels/ChartPanel'), { ssr: false });
@@ -56,6 +57,7 @@ const DEFAULT_LAYOUTS = {
     { i: 'capitol',     x: 8, y: 38, w: 4, h: 9,  minW: 3, minH: 6 },
     { i: 'cds',         x: 0, y: 47, w: 4, h: 9,  minW: 3, minH: 6 },
     { i: 'splc',        x: 4, y: 47, w: 6, h: 9,  minW: 4, minH: 8 },
+    { i: 'bloomberg',   x: 0, y: 56, w: 6, h: 12, minW: 4, minH: 8 },
   ],
 };
 
@@ -78,6 +80,7 @@ const PANELS = [
   { id: 'capitol',     label: 'Capitol Hill',    Component: InsiderTradingPanel },
   { id: 'cds',         label: 'CDS Spreads',     Component: CDSPanel },
   { id: 'splc',        label: 'Supply Chain',    Component: SupplyChainPanel },
+  { id: 'bloomberg',   label: 'Bloomberg TV',    Component: BloombergTVPanel },
 ] as const;
 
 export default function TerminalPage() {

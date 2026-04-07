@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { TICKER_ITEMS, MARKET_STATUS } from '@/lib/mockData';
 import { useMarketStore } from '@/store/marketStore';
+import { useNewsStore } from '@/store/newsStore';
 
 // Symbols in the ticker tape mapped to their store keys
 const TICKER_SYMBOL_MAP: Record<string, string> = {
@@ -25,7 +26,23 @@ const TICKER_SYMBOL_MAP: Record<string, string> = {
 export default function TerminalHeader() {
   const [time, setTime] = useState('');
   const [date, setDate] = useState('');
+  const [squawkOn, setSquawkOn] = useState(false);
+  const lastSpokenRef = useRef<string>('');
   const { prices } = useMarketStore();
+  const { articles } = useNewsStore();
+
+  // Squawk: speak new headlines as they arrive
+  useEffect(() => {
+    if (!squawkOn || typeof window === 'undefined' || !('speechSynthesis' in window)) return;
+    const latest = articles[0];
+    if (!latest || latest.headline === lastSpokenRef.current) return;
+    lastSpokenRef.current = latest.headline;
+    const utter = new SpeechSynthesisUtterance(latest.headline);
+    utter.rate = 1.1;
+    utter.pitch = 1.0;
+    utter.volume = 1.0;
+    window.speechSynthesis.speak(utter);
+  }, [articles, squawkOn]);
 
   useEffect(() => {
     const tick = () => {
@@ -120,7 +137,7 @@ export default function TerminalHeader() {
           ))}
         </div>
 
-        {/* Clock */}
+        {/* Clock + Squawk */}
         <div className="flex items-center gap-3 flex-shrink-0">
           <span style={{ fontSize: 10, color: 'var(--text-muted)', letterSpacing: 0.5 }}>{date}</span>
           <span
@@ -132,6 +149,26 @@ export default function TerminalHeader() {
           >
             {time}
           </span>
+          {/* Squawk Box Toggle */}
+          <button
+            onClick={() => {
+              if (squawkOn) window.speechSynthesis?.cancel();
+              setSquawkOn(v => !v);
+            }}
+            title={squawkOn ? 'Squawk ON — click to mute' : 'Squawk OFF — click to enable audio headlines'}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 4,
+              padding: '3px 8px', borderRadius: 3, cursor: 'pointer',
+              fontSize: 9, fontWeight: 700, letterSpacing: 0.6,
+              border: squawkOn ? '1px solid rgba(68,255,136,0.5)' : '1px solid var(--border)',
+              background: squawkOn ? 'rgba(68,255,136,0.1)' : 'var(--overlay-subtle)',
+              color: squawkOn ? '#44ff88' : 'var(--text-muted)',
+              transition: 'all 0.2s',
+            }}
+          >
+            <span style={{ fontSize: 12 }}>{squawkOn ? '🔊' : '🔇'}</span>
+            SQUAWK
+          </button>
         </div>
       </div>
 
