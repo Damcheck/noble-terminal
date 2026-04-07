@@ -29,22 +29,23 @@ export default function ChartPanel() {
 
   return (
     <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', position: 'relative' }}>
-      {/* Fullscreen button */}
+      {/* Fullscreen button - positioned bottom-right inside chart */}
       <button
         onClick={goFullscreen}
         title="Fullscreen chart"
         style={{
           position: 'absolute',
-          top: 6, right: 6,
+          bottom: 14,
+          right: 10,
           zIndex: 10,
-          background: 'rgba(0,0,0,0.6)',
-          border: '1px solid rgba(255,255,255,0.15)',
+          background: 'rgba(0,0,0,0.65)',
+          border: '1px solid rgba(255,255,255,0.2)',
           borderRadius: 4,
           color: 'rgba(255,255,255,0.7)',
-          fontSize: 13,
+          fontSize: 14,
           cursor: 'pointer',
-          padding: '2px 7px',
-          lineHeight: 1.4,
+          padding: '3px 8px',
+          lineHeight: 1.3,
         }}
       >
         ⛶
