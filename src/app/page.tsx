@@ -11,6 +11,7 @@ import { useMacroStore } from '@/store/macroStore';
 import { useNewsStore } from '@/store/newsStore';
 import { useEconCalStore } from '@/store/econCalStore';
 import { useYieldStore } from '@/store/yieldStore';
+import { useFinnhubStore } from '@/store/finnhubStore';
 
 import TerminalHeader from '@/components/layout/Header';
 import TerminalFooter from '@/components/layout/Footer';
@@ -88,13 +89,16 @@ export default function TerminalPage() {
   const initEcon = useEconCalStore(s => s.initializeRealtime);
   const initYield = useYieldStore(s => s.initializeRealtime);
 
+  const connectFinnhub = useFinnhubStore(s => s.connect);
+
   useEffect(() => {
     initMarket();
     initMacro();
     initNews();
     initEcon();
     initYield();
-  }, [initMarket, initMacro, initNews, initEcon, initYield]);
+    connectFinnhub(); // 🔴 Live WebSocket — ticking prices
+  }, [initMarket, initMacro, initNews, initEcon, initYield, connectFinnhub]);
 
   const toggle = (id: string) =>
     setHidden(prev => {

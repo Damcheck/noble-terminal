@@ -1,9 +1,10 @@
 'use client';
 
 import { useEffect, useMemo } from 'react';
-import { Panel, PanelHeader, PanelContent, LiveBadge, Sparkline } from '@/components/ui/Panel';
+import { Panel, PanelHeader, PanelContent, LiveBadge, WSBadge, Sparkline, TickingPrice } from '@/components/ui/Panel';
 import { CRYPTO_LIST as MOCK_CRYPTO_LIST } from '@/lib/mockData';
 import { useMarketStore } from '@/store/marketStore';
+import { useFinnhubStore } from '@/store/finnhubStore';
 
 const FEAR_GREED_MOCK = { value: 61, label: 'GREED' };
 
@@ -17,6 +18,7 @@ function getFearColor(v: number) {
 
 export default function CryptoPanel() {
   const { prices, isRealtimeConnected, initializeRealtime } = useMarketStore();
+  const { ticks, isConnected: isFinnhubConnected } = useFinnhubStore();
 
   useEffect(() => {
     initializeRealtime();
@@ -38,25 +40,41 @@ export default function CryptoPanel() {
     return MOCK_CRYPTO_LIST.map(mockItem => {
       // Find matching crypto in the store. Supabase might store BTC-USD or just BTC. 
       // Our mock has "BTC", "ETH" etc.
-      const liveData = prices[`${mockItem.symbol}-USD`] || prices[mockItem.symbol];
+      const ticker = `${mockItem.symbol}-USD`; // Matches our internal finnhub keys
+
+      // Priority 1: Finnhub live tick
+      const tick = ticks[ticker];
+      if (tick) {
+        return {
+          ...mockItem,
+          price: tick.price,
+          change24h: prices[ticker]?.change_pct ?? mockItem.change24h,
+          mcap: prices[ticker]?.market_cap ? `$${(prices[ticker]!.market_cap! / 1e9).toFixed(1)}B` : mockItem.mcap,
+          _hasTick: true,
+        };
+      }
+
+      // Priority 2: Supabase DB price
+      const liveData = prices[ticker] || prices[mockItem.symbol];
       if (liveData) {
         return {
           ...mockItem,
           price: liveData.price || mockItem.price,
           change24h: liveData.change_pct || mockItem.change24h,
           mcap: liveData.market_cap ? `$${(liveData.market_cap / 1e9).toFixed(1)}B` : mockItem.mcap,
+          _hasTick: false,
         };
       }
-      return mockItem;
+      return { ...mockItem, _hasTick: false };
     });
-  }, [prices]);
+  }, [prices, ticks]);
 
   return (
     <Panel>
       <PanelHeader 
         title="Crypto" 
         count={renderList.length} 
-        badge={isRealtimeConnected ? <LiveBadge /> : undefined} 
+        badge={isFinnhubConnected ? <WSBadge /> : isRealtimeConnected ? <LiveBadge /> : undefined} 
       />
       <PanelContent noPad>
         {/* Fear & Greed + Stats */}
@@ -125,10 +143,11 @@ export default function CryptoPanel() {
                     <div style={{ fontWeight: 700, color: 'var(--text)', fontSize: 10 }}>{c.symbol}</div>
                     <div style={{ fontSize: 9, color: 'var(--text-muted)' }}>{c.name}</div>
                   </td>
-                  <td style={{ padding: '5px 8px', color: 'var(--text)', fontFamily: 'var(--font-mono)', textAlign: 'right' }}>
-                    {c.price >= 1000
-                      ? c.price.toLocaleString('en-US', { maximumFractionDigits: 0 })
-                      : c.price.toFixed(4)}
+                  <td style={{ padding: '5px 8px', textAlign: 'right' }}>
+                    <TickingPrice 
+                      price={c.price} 
+                      style={{ fontSize: 10, color: 'var(--text)', fontFamily: 'var(--font-mono)' }} 
+                    />
                   </td>
                   <td style={{ padding: '5px 8px', color: up ? '#44ff88' : '#ff4444', fontWeight: 600, textAlign: 'right', fontFamily: 'var(--font-mono)' }}>
                     {up ? '+' : ''}{c.change24h.toFixed(2)}%

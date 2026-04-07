@@ -1,38 +1,49 @@
 'use client';
 
 import { useMemo } from 'react';
-import { Panel, PanelHeader, PanelContent, LiveBadge, Sparkline } from '@/components/ui/Panel';
+import { Panel, PanelHeader, PanelContent, LiveBadge, WSBadge, Sparkline, TickingPrice } from '@/components/ui/Panel';
 import { FOREX_PAIRS as MOCK_FOREX_PAIRS } from '@/lib/mockData';
 import { useMarketStore } from '@/store/marketStore';
+import { useFinnhubStore } from '@/store/finnhubStore';
 
 export default function ForexPanel() {
   const { prices, isRealtimeConnected } = useMarketStore();
+  const { ticks, isConnected: isFinnhubConnected } = useFinnhubStore();
 
   // Merge Realtime Data into Mock data array for layout stability
   const renderList = useMemo(() => {
     return MOCK_FOREX_PAIRS.map(mockItem => {
-      // Find matching forex pair in the store. Supabase might store EUR/USD or EURUSD=X. 
-      // We will check multiple variations.
+      // Priority 1: Finnhub live tick
+      const tick = ticks[mockItem.pair]; // e.g. "EUR/USD"
+      if (tick) {
+        return {
+          ...mockItem,
+          bid: tick.price,
+          ask: tick.price * 1.0002, // estimate ask from live tick
+          change: prices[mockItem.pair]?.change_pct ?? mockItem.change,
+        };
+      }
+
+      // Priority 2: Supabase DB price
       const liveData = prices[mockItem.pair] || prices[`${mockItem.pair.replace('/', '')}=X`];
-      
       if (liveData) {
         return {
           ...mockItem,
-          bid: liveData.bid?.toFixed(4) || mockItem.bid,
-          ask: liveData.ask?.toFixed(4) || mockItem.ask,
+          bid: liveData.bid || liveData.price || mockItem.bid,
+          ask: liveData.ask || mockItem.ask,
           change: liveData.change_pct || mockItem.change,
         };
       }
       return mockItem;
     });
-  }, [prices]);
+  }, [prices, ticks]);
 
   return (
     <Panel>
       <PanelHeader 
         title="Forex" 
         count={renderList.length} 
-        badge={isRealtimeConnected ? <LiveBadge /> : undefined} 
+        badge={isFinnhubConnected ? <WSBadge /> : isRealtimeConnected ? <LiveBadge /> : undefined} 
       />
       <PanelContent noPad>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 10 }}>
@@ -96,11 +107,15 @@ export default function ForexPanel() {
                       {item.pair}
                     </span>
                   </td>
-                  <td style={{ padding: '6px 8px', color: 'var(--text)', fontFamily: 'var(--font-mono)', textAlign: 'right', fontSize: 10 }}>
-                    {item.bid}
+                  <td style={{ padding: '6px 8px', textAlign: 'right' }}>
+                    <TickingPrice 
+                      price={Number(item.bid)} 
+                      decimals={4} 
+                      style={{ fontSize: 10, color: 'var(--text)', fontFamily: 'var(--font-mono)' }} 
+                    />
                   </td>
                   <td style={{ padding: '6px 8px', color: 'var(--text-dim)', fontFamily: 'var(--font-mono)', textAlign: 'right', fontSize: 10 }}>
-                    {item.ask}
+                    {typeof item.ask === 'number' ? item.ask.toFixed(4) : Number(item.ask).toFixed(4)}
                   </td>
                   <td style={{ padding: '6px 8px', color: up ? '#44ff88' : '#ff4444', fontWeight: 600, textAlign: 'right', fontFamily: 'var(--font-mono)' }}>
                     {up ? '+' : ''}{item.change.toFixed(2)}%

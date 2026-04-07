@@ -1,6 +1,88 @@
 'use client';
 
-import React from 'react';
+import React, { useRef, useEffect, useState } from 'react';
+
+// ── Ticking Price — flashes green/red on every live update ──────
+interface TickingPriceProps {
+  price: number;
+  flash?: 'up' | 'down' | null;
+  decimals?: number;
+  style?: React.CSSProperties;
+  className?: string;
+}
+
+export function TickingPrice({ price, flash, decimals, style, className }: TickingPriceProps) {
+  const [currentFlash, setCurrentFlash] = useState<'up' | 'down' | null>(null);
+  const prevPrice = useRef<number>(price);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (price !== prevPrice.current) {
+      const dir = price > prevPrice.current ? 'up' : 'down';
+      setCurrentFlash(dir);
+      prevPrice.current = price;
+      if (timerRef.current) clearTimeout(timerRef.current);
+      timerRef.current = setTimeout(() => setCurrentFlash(null), 600);
+    }
+    return () => { if (timerRef.current) clearTimeout(timerRef.current); };
+  }, [price]);
+
+  const auto = decimals ?? (price >= 1000 ? 2 : price >= 1 ? 4 : 6);
+  const priceStr = price.toLocaleString('en-US', {
+    minimumFractionDigits: auto,
+    maximumFractionDigits: auto,
+  });
+
+  const flashColor = currentFlash === 'up'
+    ? 'rgba(68,255,136,0.25)'
+    : currentFlash === 'down'
+    ? 'rgba(255,68,68,0.25)'
+    : 'transparent';
+
+  return (
+    <span
+      className={className}
+      style={{
+        fontFamily: 'var(--font-mono)',
+        transition: 'background 0.1s ease',
+        background: flashColor,
+        borderRadius: 2,
+        padding: '0 2px',
+        ...style,
+      }}
+    >
+      {priceStr}
+    </span>
+  );
+}
+
+// ── WS Badge — shows when Finnhub WebSocket is active ──────────
+export function WSBadge() {
+  return (
+    <span
+      className="flex items-center gap-1"
+      style={{
+        fontSize: 9,
+        padding: '2px 6px',
+        borderRadius: 10,
+        color: '#3af',
+        border: '1px solid rgba(51,170,255,0.45)',
+        background: 'rgba(51,170,255,0.12)',
+      }}
+    >
+      <span
+        style={{
+          width: 5, height: 5, borderRadius: '50%',
+          background: '#3af', display: 'inline-block',
+          animation: 'pulse-dot 1s ease-in-out infinite',
+        }}
+      />
+      WS
+    </span>
+  );
+}
+
+
 
 // ── Panel Container ─────────────────────────────────────────
 interface PanelProps {
