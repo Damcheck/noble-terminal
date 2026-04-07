@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 
 interface Channel {
   id: string;
@@ -9,7 +9,6 @@ interface Channel {
   session: string;
   color: string;
   videoId: string;
-  youtubeUrl: string; // fallback link
 }
 
 const CHANNELS: Channel[] = [
@@ -20,7 +19,6 @@ const CHANNELS: Channel[] = [
     session: 'GLOBAL · MACRO',
     color: '#ff6b00',
     videoId: 'iEpJwprxDdk',
-    youtubeUrl: 'https://www.youtube.com/watch?v=iEpJwprxDdk',
   },
   {
     id: 'yahoo',
@@ -29,7 +27,6 @@ const CHANNELS: Channel[] = [
     session: 'NEW YORK · USD',
     color: '#7360f2',
     videoId: 'KQp-e_XQnDE',
-    youtubeUrl: 'https://www.youtube.com/watch?v=KQp-e_XQnDE',
   },
   {
     id: 'skynews',
@@ -37,28 +34,33 @@ const CHANNELS: Channel[] = [
     flag: '🇬🇧',
     session: 'LONDON · GBP/EUR',
     color: '#00a0e9',
-    videoId: 'n6L80JIZ9pg',
-    youtubeUrl: 'https://www.youtube.com/watch?v=n6L80JIZ9pg',
+    videoId: '9Auq9mYxFEE', // Sky News confirmed stable 24/7
   },
   {
-    id: 'cna',
-    label: 'CNA',
+    id: 'aljaz',
+    label: 'Al Jazeera',
     flag: '🇸🇬',
-    session: 'ASIA · JPY/AUD',
+    session: 'ASIA · GLOBAL',
     color: '#e63946',
-    videoId: 'XWq5kBlakcQ',
-    youtubeUrl: 'https://www.youtube.com/watch?v=XWq5kBlakcQ',
+    videoId: 'nGTQmAbmEAQ', // Al Jazeera — most reliable 24/7 embed
   },
   {
-    id: 'cnbc',
-    label: 'CNBC',
-    flag: '💹',
-    session: '24/7 MARKETS',
-    color: '#f7931a',
-    videoId: 'OiFiIZT57tI',
-    youtubeUrl: 'https://www.youtube.com/watch?v=OiFiIZT57tI',
+    id: 'france24',
+    label: 'France 24',
+    flag: '🇫🇷',
+    session: 'EUROPE · EUR',
+    color: '#2dc6a0',
+    videoId: 'h3MuIUNCRNk', // France 24 — reliable embed, no EU/ECB missed
   },
 ];
+
+// Send YouTube iframe API command via postMessage
+function sendCmd(iframe: HTMLIFrameElement, func: string, args: unknown[] = []) {
+  iframe.contentWindow?.postMessage(
+    JSON.stringify({ event: 'command', func, args }),
+    '*'
+  );
+}
 
 function TVFrame({
   channel,
@@ -72,23 +74,45 @@ function TVFrame({
   big?: boolean;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const [playing, setPlaying] = useState(true);
+
+  // Apply mute/unmute via postMessage (not URL change — avoids reload)
+  useEffect(() => {
+    if (!iframeRef.current) return;
+    sendCmd(iframeRef.current, muted ? 'mute' : 'unMute');
+  }, [muted]);
+
+  const togglePlay = useCallback(() => {
+    if (!iframeRef.current) return;
+    if (playing) {
+      sendCmd(iframeRef.current, 'pauseVideo');
+    } else {
+      sendCmd(iframeRef.current, 'playVideo');
+    }
+    setPlaying(p => !p);
+  }, [playing]);
 
   const goFullscreen = useCallback(() => {
     if (!containerRef.current) return;
-    if (containerRef.current.requestFullscreen) {
-      containerRef.current.requestFullscreen();
-    }
+    containerRef.current.requestFullscreen?.();
   }, []);
 
-  const embedSrc = [
+  // Build embed URL — controls=0 hides ALL YouTube UI
+  const src = [
     `https://www.youtube-nocookie.com/embed/${channel.videoId}`,
     `?autoplay=1`,
     `&mute=${muted ? 1 : 0}`,
-    `&controls=1`,
+    `&controls=0`,           // ← no YouTube controls at all
     `&modestbranding=1`,
     `&rel=0`,
+    `&showinfo=0`,
+    `&iv_load_policy=3`,    // no annotations
+    `&disablekb=1`,          // disable keyboard shortcuts
     `&playsinline=1`,
-    `&enablejsapi=1`,
+    `&enablejsapi=1`,        // required for postMessage commands
+    `&origin=${typeof window !== 'undefined' ? window.location.origin : ''}`,
+    `&loop=1&playlist=${channel.videoId}`, // loop so it never stops
   ].join('');
 
   return (
@@ -101,20 +125,38 @@ function TVFrame({
         background: '#000',
         overflow: 'hidden',
         borderRadius: 4,
-        border: `1px solid ${channel.color}30`,
+        border: `1px solid ${channel.color}40`,
       }}
     >
-      <iframe
-        src={embedSrc}
-        style={{ width: '100%', height: '100%', border: 'none', display: 'block' }}
-        allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
-        allowFullScreen
-        referrerPolicy="strict-origin-when-cross-origin"
-        title={channel.label}
-        loading="lazy"
-      />
+      {/* Scale the iframe UP to hide the YouTube watermark at bottom-right */}
+      <div style={{
+        position: 'absolute',
+        inset: 0,
+        overflow: 'hidden',
+      }}>
+        <iframe
+          ref={iframeRef}
+          src={src}
+          style={{
+            position: 'absolute',
+            top: '-5%',
+            left: '-5%',
+            width: '110%',
+            height: '110%',
+            border: 'none',
+            pointerEvents: 'none', // block all YouTube link clicks (no YT links visible)
+          }}
+          allow="autoplay; encrypted-media; fullscreen"
+          allowFullScreen
+          referrerPolicy="strict-origin-when-cross-origin"
+          title={channel.label}
+        />
+      </div>
 
-      {/* Bottom overlay bar */}
+      {/* Glass overlay — captures mouse so no YouTube links are clickable */}
+      <div style={{ position: 'absolute', inset: 0, zIndex: 2 }} />
+
+      {/* Bottom control bar — sits above the glass overlay */}
       <div
         style={{
           position: 'absolute',
@@ -122,55 +164,54 @@ function TVFrame({
           left: 0,
           right: 0,
           padding: '4px 8px',
-          background: 'linear-gradient(transparent, rgba(0,0,0,0.9))',
+          background: 'linear-gradient(transparent, rgba(0,0,0,0.92))',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
           gap: 4,
-          pointerEvents: 'none', // pass clicks through to iframe except buttons
+          zIndex: 3,
         }}
       >
         {/* Channel label */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 5, pointerEvents: 'none' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
           <div style={{
             width: 6, height: 6, borderRadius: '50%',
             background: channel.color,
-            boxShadow: `0 0 6px ${channel.color}`,
-            animation: 'pulse 2s infinite',
+            boxShadow: `0 0 5px ${channel.color}`,
             flexShrink: 0,
           }} />
-          <span style={{
-            fontSize: big ? 10 : 8,
-            fontWeight: 700,
-            color: 'rgba(255,255,255,0.9)',
-            letterSpacing: 0.5,
-          }}>
+          <span style={{ fontSize: big ? 10 : 8, fontWeight: 700, color: '#fff', letterSpacing: 0.5 }}>
             {channel.flag} {channel.label}
           </span>
-          <span style={{
-            fontSize: big ? 9 : 7,
-            color: channel.color,
-            letterSpacing: 0.3,
-            fontWeight: 600,
-          }}>
+          <span style={{ fontSize: big ? 8 : 7, color: channel.color, fontWeight: 600 }}>
             ◉ {channel.session}
           </span>
         </div>
 
         {/* Controls */}
-        <div style={{ display: 'flex', gap: 4, pointerEvents: 'all' }}>
-          {/* Mute toggle */}
+        <div style={{ display: 'flex', gap: 4 }}>
+          {/* Play/Pause */}
+          <button
+            onClick={togglePlay}
+            style={{
+              background: 'rgba(255,255,255,0.12)',
+              border: '1px solid rgba(255,255,255,0.2)',
+              borderRadius: 3, cursor: 'pointer',
+              fontSize: big ? 13 : 10, padding: '2px 7px', color: '#fff', lineHeight: 1,
+            }}
+          >
+            {playing ? '⏸' : '▶'}
+          </button>
+
+          {/* Mute/Unmute */}
           <button
             onClick={onToggleMute}
-            title={muted ? 'Click to unmute' : 'Click to mute'}
             style={{
-              background: 'rgba(0,0,0,0.6)',
-              border: `1px solid ${muted ? 'rgba(255,255,255,0.2)' : channel.color}`,
+              background: 'rgba(255,255,255,0.12)',
+              border: `1px solid ${muted ? 'rgba(255,255,255,0.15)' : channel.color}`,
               borderRadius: 3, cursor: 'pointer',
-              fontSize: big ? 14 : 10,
-              padding: '2px 6px',
-              color: muted ? 'rgba(255,255,255,0.4)' : channel.color,
-              lineHeight: 1,
+              fontSize: big ? 13 : 10, padding: '2px 7px',
+              color: muted ? 'rgba(255,255,255,0.4)' : channel.color, lineHeight: 1,
             }}
           >
             {muted ? '🔇' : '🔊'}
@@ -179,40 +220,15 @@ function TVFrame({
           {/* Fullscreen */}
           <button
             onClick={goFullscreen}
-            title="Fullscreen"
             style={{
-              background: 'rgba(0,0,0,0.6)',
+              background: 'rgba(255,255,255,0.12)',
               border: '1px solid rgba(255,255,255,0.2)',
               borderRadius: 3, cursor: 'pointer',
-              fontSize: big ? 14 : 10,
-              padding: '2px 6px',
-              color: 'rgba(255,255,255,0.7)',
-              lineHeight: 1,
+              fontSize: big ? 12 : 9, padding: '2px 7px', color: '#fff', lineHeight: 1,
             }}
           >
             ⛶
           </button>
-
-          {/* Open in YouTube (fallback) */}
-          <a
-            href={channel.youtubeUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            title="Open on YouTube"
-            style={{
-              background: 'rgba(255,0,0,0.5)',
-              border: '1px solid rgba(255,0,0,0.4)',
-              borderRadius: 3, cursor: 'pointer',
-              fontSize: big ? 11 : 8,
-              padding: '2px 6px',
-              color: 'white',
-              textDecoration: 'none',
-              lineHeight: 1,
-              display: 'flex', alignItems: 'center',
-            }}
-          >
-            ▶ YT
-          </a>
         </div>
       </div>
     </div>
@@ -221,25 +237,24 @@ function TVFrame({
 
 export default function TVWallPanel() {
   const [muted, setMuted] = useState<Record<string, boolean>>({
-    bloomberg: false, // Bloomberg unmuted by default
+    bloomberg: false,
     yahoo: true,
     skynews: true,
-    cna: true,
-    cnbc: true,
+    aljaz: true,
+    france24: true,
   });
 
   const toggleMute = (id: string) => {
     setMuted(prev => {
       if (!prev[id]) {
-        // Currently this channel is unmuted (true = muted)
-        // We are MUTING it
+        // Currently unmuted — mute it
         return { ...prev, [id]: true };
       }
-      // We are UNMUTING this channel — mute all others
-      const allMuted: Record<string, boolean> = {};
-      CHANNELS.forEach(c => { allMuted[c.id] = true; });
-      allMuted[id] = false;
-      return allMuted;
+      // Unmuting this one — mute all others
+      const all: Record<string, boolean> = {};
+      CHANNELS.forEach(c => { all[c.id] = true; });
+      all[id] = false;
+      return all;
     });
   };
 
@@ -247,40 +262,19 @@ export default function TVWallPanel() {
 
   return (
     <div style={{
-      width: '100%',
-      height: '100%',
-      display: 'flex',
-      gap: 4,
-      padding: 4,
-      background: '#0a0a0f',
-      boxSizing: 'border-box',
-      overflow: 'hidden',
+      width: '100%', height: '100%',
+      display: 'flex', gap: 4, padding: 4,
+      background: '#060608', boxSizing: 'border-box', overflow: 'hidden',
     }}>
-      {/* Main Bloomberg TV — 62% width */}
+      {/* Bloomberg — big (62%) */}
       <div style={{ flex: '0 0 62%', height: '100%' }}>
-        <TVFrame
-          channel={bloomberg}
-          muted={muted[bloomberg.id]}
-          onToggleMute={() => toggleMute(bloomberg.id)}
-          big
-        />
+        <TVFrame channel={bloomberg} muted={muted.bloomberg} onToggleMute={() => toggleMute('bloomberg')} big />
       </div>
 
-      {/* 4 Small Channels — 2×2 grid */}
-      <div style={{
-        flex: 1,
-        display: 'grid',
-        gridTemplateColumns: '1fr 1fr',
-        gridTemplateRows: '1fr 1fr',
-        gap: 4,
-      }}>
+      {/* 4 small channels — 2×2 grid */}
+      <div style={{ flex: 1, display: 'grid', gridTemplateColumns: '1fr 1fr', gridTemplateRows: '1fr 1fr', gap: 4 }}>
         {smallChannels.map(ch => (
-          <TVFrame
-            key={ch.id}
-            channel={ch}
-            muted={muted[ch.id]}
-            onToggleMute={() => toggleMute(ch.id)}
-          />
+          <TVFrame key={ch.id} channel={ch} muted={muted[ch.id]} onToggleMute={() => toggleMute(ch.id)} />
         ))}
       </div>
     </div>

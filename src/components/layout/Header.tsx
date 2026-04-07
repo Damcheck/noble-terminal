@@ -4,23 +4,24 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import { TICKER_ITEMS, MARKET_STATUS } from '@/lib/mockData';
 import { useMarketStore } from '@/store/marketStore';
 import { useNewsStore } from '@/store/newsStore';
+import { useFinnhubStore } from '@/store/finnhubStore';
 
-// Symbols in the ticker tape mapped to their store keys
-const TICKER_SYMBOL_MAP: Record<string, string> = {
-  'S&P 500':  'SPY',
-  'NASDAQ':   'QQQ',
-  'DOW':      'DIA',
-  'XAU/USD':  'GC=F',
-  'BTC/USD':  'BTC-USD',
-  'EUR/USD':  'EURUSD=X',
-  'GBP/USD':  'GBPUSD=X',
-  'VIX':      '^VIX',
-  'USD/NGN':  'USDNGN=X',
-  'WTI OIL':  'CL=F',
-  'NVDA':     'NVDA',
-  'TSLA':     'TSLA',
-  'AAPL':     'AAPL',
-  'ETH/USD':  'ETH-USD',
+// Maps ticker tape labels to Supabase store keys and Finnhub tick keys
+const TICKER_SYMBOL_MAP: Record<string, { storeKey: string; finnhubKey: string }> = {
+  'S&P 500':  { storeKey: 'SPY',       finnhubKey: 'SPY' },
+  'NASDAQ':   { storeKey: 'QQQ',       finnhubKey: 'QQQ' },
+  'DOW':      { storeKey: 'DIA',       finnhubKey: 'DIA' },
+  'XAU/USD':  { storeKey: 'GC=F',      finnhubKey: 'GC=F' },
+  'BTC/USD':  { storeKey: 'BTC-USD',   finnhubKey: 'BTC-USD' },
+  'EUR/USD':  { storeKey: 'EURUSD=X',  finnhubKey: 'EUR/USD' },
+  'GBP/USD':  { storeKey: 'GBPUSD=X',  finnhubKey: 'GBP/USD' },
+  'VIX':      { storeKey: '^VIX',      finnhubKey: '^VIX' },
+  'USD/NGN':  { storeKey: 'USDNGN=X',  finnhubKey: 'USD/NGN' },
+  'WTI OIL':  { storeKey: 'CL=F',      finnhubKey: 'CL=F' },
+  'NVDA':     { storeKey: 'NVDA',      finnhubKey: 'NVDA' },
+  'TSLA':     { storeKey: 'TSLA',      finnhubKey: 'TSLA' },
+  'AAPL':     { storeKey: 'AAPL',      finnhubKey: 'AAPL' },
+  'ETH/USD':  { storeKey: 'ETH-USD',   finnhubKey: 'ETH-USD' },
 };
 
 export default function TerminalHeader() {
@@ -29,6 +30,7 @@ export default function TerminalHeader() {
   const [squawkOn, setSquawkOn] = useState(false);
   const lastSpokenRef = useRef<string>('');
   const { prices } = useMarketStore();
+  const { ticks } = useFinnhubStore(); // real-time ticks — higher priority
   const { articles } = useNewsStore();
 
   // Squawk: speak new headlines as they arrive
@@ -55,28 +57,38 @@ export default function TerminalHeader() {
     return () => clearInterval(id);
   }, []);
 
-  // Merge live prices into ticker items where available
+  // Merge live prices: Finnhub tick (real-time) > Supabase price (5min) > mock
   const tapeItems = useMemo(() => {
     return TICKER_ITEMS.map(item => {
-      const storeKey = TICKER_SYMBOL_MAP[item.symbol];
-      const live = storeKey ? prices[storeKey] : null;
-      if (live && live.price) {
+      const map = TICKER_SYMBOL_MAP[item.symbol];
+      if (!map) return item;
+      // 1. Finnhub real-time tick (sub-second)
+      const tick = ticks[map.finnhubKey];
+      if (tick?.price) {
+        const prevPrice = tick.prevPrice ?? tick.price;
+        const pctChange = prevPrice > 0 ? ((tick.price - prevPrice) / prevPrice) * 100 : 0;
+        const up = pctChange >= 0;
+        const priceStr = tick.price >= 1000
+          ? tick.price.toLocaleString('en-US', { maximumFractionDigits: 2 })
+          : tick.price >= 1
+          ? tick.price.toFixed(2)
+          : tick.price.toFixed(4);
+        return { symbol: item.symbol, price: priceStr, change: `${up ? '+' : ''}${pctChange.toFixed(2)}%`, up };
+      }
+      // 2. Supabase price (refreshed every 5min)
+      const live = prices[map.storeKey];
+      if (live?.price) {
         const up = live.change_pct >= 0;
         const priceStr = live.price >= 1000
           ? live.price.toLocaleString('en-US', { maximumFractionDigits: 2 })
           : live.price >= 1
           ? live.price.toFixed(2)
           : live.price.toFixed(4);
-        return {
-          symbol: item.symbol,
-          price: priceStr,
-          change: `${up ? '+' : ''}${live.change_pct.toFixed(2)}%`,
-          up,
-        };
+        return { symbol: item.symbol, price: priceStr, change: `${up ? '+' : ''}${live.change_pct.toFixed(2)}%`, up };
       }
       return item;
     });
-  }, [prices]);
+  }, [prices, ticks]);
 
   // Duplicate for seamless scroll
   const scrollItems = [...tapeItems, ...tapeItems];
