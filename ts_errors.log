@@ -1,0 +1,90 @@
+src/app/api/cron/crypto/route.ts(64,20): error TS2339: Property 'suppressNotices' does not exist on type 'YahooFinanceWithModules<{ readonly modules: { readonly quoteCombine: { (this: ModuleThis, query: string, queryOptionsOverrides?: QuoteOptions | undefined, moduleOptions?: ModuleOptionsWithValidateTrue | undefined): Promise<...>; (this: ModuleThis, query: string, queryOptionsOverrides?: QuoteOptions | undefined, modu...'.
+src/app/api/cron/crypto/route.ts(68,36): error TS2339: Property 'regularMarketPrice' does not exist on type 'never'.
+src/app/api/cron/crypto/route.ts(69,19): error TS2339: Property 'symbol' does not exist on type 'never'.
+src/app/api/cron/crypto/route.ts(71,18): error TS2339: Property 'regularMarketPrice' does not exist on type 'never'.
+src/app/api/cron/crypto/route.ts(72,23): error TS2339: Property 'regularMarketChangePercent' does not exist on type 'never'.
+src/app/api/cron/crypto/route.ts(73,23): error TS2339: Property 'marketCap' does not exist on type 'never'.
+src/app/api/cron/crypto/route.ts(74,19): error TS2339: Property 'regularMarketVolume' does not exist on type 'never'.
+src/app/api/cron/crypto/route.ts(75,17): error TS2339: Property 'regularMarketDayHigh' does not exist on type 'never'.
+src/app/api/cron/crypto/route.ts(76,16): error TS2339: Property 'regularMarketDayLow' does not exist on type 'never'.
+src/app/api/cron/crypto/route.ts(77,26): error TS2339: Property 'shortName' does not exist on type 'never'.
+src/app/api/cron/crypto/route.ts(77,41): error TS2339: Property 'symbol' does not exist on type 'never'.
+src/app/api/cron/forex/route.ts(28,18): error TS2339: Property 'suppressNotices' does not exist on type 'YahooFinanceWithModules<{ readonly modules: { readonly quoteCombine: { (this: ModuleThis, query: string, queryOptionsOverrides?: QuoteOptions | undefined, moduleOptions?: ModuleOptionsWithValidateTrue | undefined): Promise<...>; (this: ModuleThis, query: string, queryOptionsOverrides?: QuoteOptions | undefined, modu...'.
+src/app/api/cron/forex/route.ts(37,23): error TS2339: Property 'regularMarketPrice' does not exist on type 'never'.
+src/app/api/cron/forex/route.ts(39,32): error TS2339: Property 'symbol' does not exist on type 'never'.
+src/app/api/cron/forex/route.ts(39,45): error TS2339: Property 'symbol' does not exist on type 'never'.
+src/app/api/cron/forex/route.ts(40,23): error TS2339: Property 'symbol' does not exist on type 'never'.
+src/app/api/cron/forex/route.ts(41,18): error TS2339: Property 'regularMarketPrice' does not exist on type 'never'.
+src/app/api/cron/forex/route.ts(42,16): error TS2339: Property 'bid' does not exist on type 'never'.
+src/app/api/cron/forex/route.ts(42,25): error TS2339: Property 'regularMarketPrice' does not exist on type 'never'.
+src/app/api/cron/forex/route.ts(43,16): error TS2339: Property 'ask' does not exist on type 'never'.
+src/app/api/cron/forex/route.ts(43,26): error TS2339: Property 'regularMarketPrice' does not exist on type 'never'.
+src/app/api/cron/forex/route.ts(43,49): error TS2339: Property 'regularMarketPrice' does not exist on type 'never'.
+src/app/api/cron/forex/route.ts(44,23): error TS2339: Property 'regularMarketChangePercent' does not exist on type 'never'.
+src/app/api/cron/forex/route.ts(45,17): error TS2339: Property 'regularMarketDayHigh' does not exist on type 'never'.
+src/app/api/cron/forex/route.ts(46,16): error TS2339: Property 'regularMarketDayLow' does not exist on type 'never'.
+src/app/api/cron/forex/route.ts(47,18): error TS2339: Property 'regularMarketPreviousClose' does not exist on type 'never'.
+src/app/api/cron/forex/route.ts(49,32): error TS2339: Property 'symbol' does not exist on type 'never'.
+src/app/api/cron/forex/route.ts(49,45): error TS2339: Property 'symbol' does not exist on type 'never'.
+src/app/api/cron/forex/route.ts(50,23): error TS2339: Property 'currency' does not exist on type 'never'.
+src/app/api/cron/macro/route.ts(43,28): error TS2339: Property 'suppressNotices' does not exist on type 'YahooFinanceWithModules<{ readonly modules: { readonly quoteCombine: { (this: ModuleThis, query: string, queryOptionsOverrides?: QuoteOptions | undefined, moduleOptions?: ModuleOptionsWithValidateTrue | undefined): Promise<...>; (this: ModuleThis, query: string, queryOptionsOverrides?: QuoteOptions | undefined, modu...'.
+src/app/api/cron/macro/route.ts(45,22): error TS2339: Property 'regularMarketPrice' does not exist on type 'never'.
+src/app/api/cron/macro/route.ts(49,28): error TS2339: Property 'regularMarketPrice' does not exist on type 'never'.
+src/app/api/cron/macro/route.ts(50,37): error TS2339: Property 'regularMarketPreviousClose' does not exist on type 'never'.
+src/app/api/cron/macro/route.ts(50,69): error TS2339: Property 'regularMarketPrice' does not exist on type 'never'.
+src/app/api/cron/macro/route.ts(51,33): error TS2339: Property 'regularMarketChangePercent' does not exist on type 'never'.
+src/app/api/cron/macro/route.ts(82,20): error TS2339: Property 'suppressNotices' does not exist on type 'YahooFinanceWithModules<{ readonly modules: { readonly quoteCombine: { (this: ModuleThis, query: string, queryOptionsOverrides?: QuoteOptions | undefined, moduleOptions?: ModuleOptionsWithValidateTrue | undefined): Promise<...>; (this: ModuleThis, query: string, queryOptionsOverrides?: QuoteOptions | undefined, modu...'.
+src/app/api/cron/macro/route.ts(94,26): error TS2339: Property 'regularMarketPrice' does not exist on type 'never'.
+src/app/api/cron/macro/route.ts(96,68): error TS2339: Property 'symbol' does not exist on type 'never'.
+src/app/api/cron/macro/route.ts(99,38): error TS2339: Property 'symbol' does not exist on type 'never'.
+src/app/api/cron/macro/route.ts(99,51): error TS2339: Property 'symbol' does not exist on type 'never'.
+src/app/api/cron/macro/route.ts(100,32): error TS2339: Property 'symbol' does not exist on type 'never'.
+src/app/api/cron/macro/route.ts(100,45): error TS2339: Property 'symbol' does not exist on type 'never'.
+src/app/api/cron/macro/route.ts(101,22): error TS2339: Property 'regularMarketPrice' does not exist on type 'never'.
+src/app/api/cron/macro/route.ts(102,31): error TS2339: Property 'regularMarketPreviousClose' does not exist on type 'never'.
+src/app/api/cron/macro/route.ts(102,63): error TS2339: Property 'regularMarketPrice' does not exist on type 'never'.
+src/app/api/cron/macro/route.ts(103,27): error TS2339: Property 'regularMarketChangePercent' does not exist on type 'never'.
+src/app/api/cron/prices/route.ts(26,18): error TS2339: Property 'suppressNotices' does not exist on type 'YahooFinanceWithModules<{ readonly modules: { readonly quoteCombine: { (this: ModuleThis, query: string, queryOptionsOverrides?: QuoteOptions | undefined, moduleOptions?: ModuleOptionsWithValidateTrue | undefined): Promise<...>; (this: ModuleThis, query: string, queryOptionsOverrides?: QuoteOptions | undefined, modu...'.
+src/app/api/cron/prices/route.ts(32,29): error TS2339: Property 'regularMarketPrice' does not exist on type 'never'.
+src/app/api/cron/prices/route.ts(34,19): error TS2339: Property 'symbol' does not exist on type 'never'.
+src/app/api/cron/prices/route.ts(36,13): error TS2339: Property 'quoteType' does not exist on type 'never'.
+src/app/api/cron/prices/route.ts(38,17): error TS2339: Property 'quoteType' does not exist on type 'never'.
+src/app/api/cron/prices/route.ts(40,17): error TS2339: Property 'quoteType' does not exist on type 'never'.
+src/app/api/cron/prices/route.ts(43,18): error TS2339: Property 'regularMarketPrice' does not exist on type 'never'.
+src/app/api/cron/prices/route.ts(44,23): error TS2339: Property 'regularMarketOpen' does not exist on type 'never'.
+src/app/api/cron/prices/route.ts(45,17): error TS2339: Property 'regularMarketDayHigh' does not exist on type 'never'.
+src/app/api/cron/prices/route.ts(46,16): error TS2339: Property 'regularMarketDayLow' does not exist on type 'never'.
+src/app/api/cron/prices/route.ts(47,18): error TS2339: Property 'regularMarketPreviousClose' does not exist on type 'never'.
+src/app/api/cron/prices/route.ts(48,19): error TS2339: Property 'regularMarketVolume' does not exist on type 'never'.
+src/app/api/cron/prices/route.ts(49,23): error TS2339: Property 'regularMarketChangePercent' does not exist on type 'never'.
+src/app/api/cron/prices/route.ts(50,16): error TS2339: Property 'bid' does not exist on type 'never'.
+src/app/api/cron/prices/route.ts(51,16): error TS2339: Property 'ask' does not exist on type 'never'.
+src/app/api/cron/prices/route.ts(52,23): error TS2339: Property 'marketCap' does not exist on type 'never'.
+src/app/api/cron/prices/route.ts(54,19): error TS2339: Property 'shortName' does not exist on type 'never'.
+src/app/api/cron/prices/route.ts(54,34): error TS2339: Property 'longName' does not exist on type 'never'.
+src/app/api/cron/prices/route.ts(54,48): error TS2339: Property 'symbol' does not exist on type 'never'.
+src/app/api/cron/prices/route.ts(55,23): error TS2339: Property 'exchange' does not exist on type 'never'.
+src/app/api/cron/prices/route.ts(56,23): error TS2339: Property 'currency' does not exist on type 'never'.
+src/app/api/cron/sectors/route.ts(29,18): error TS2339: Property 'suppressNotices' does not exist on type 'YahooFinanceWithModules<{ readonly modules: { readonly quoteCombine: { (this: ModuleThis, query: string, queryOptionsOverrides?: QuoteOptions | undefined, moduleOptions?: ModuleOptionsWithValidateTrue | undefined): Promise<...>; (this: ModuleThis, query: string, queryOptionsOverrides?: QuoteOptions | undefined, modu...'.
+src/app/api/cron/sectors/route.ts(38,23): error TS2339: Property 'regularMarketPrice' does not exist on type 'never'.
+src/app/api/cron/sectors/route.ts(40,34): error TS2339: Property 'symbol' does not exist on type 'never'.
+src/app/api/cron/sectors/route.ts(42,21): error TS2339: Property 'symbol' does not exist on type 'never'.
+src/app/api/cron/sectors/route.ts(44,20): error TS2339: Property 'regularMarketPrice' does not exist on type 'never'.
+src/app/api/cron/sectors/route.ts(45,25): error TS2339: Property 'regularMarketOpen' does not exist on type 'never'.
+src/app/api/cron/sectors/route.ts(46,19): error TS2339: Property 'regularMarketDayHigh' does not exist on type 'never'.
+src/app/api/cron/sectors/route.ts(47,18): error TS2339: Property 'regularMarketDayLow' does not exist on type 'never'.
+src/app/api/cron/sectors/route.ts(48,20): error TS2339: Property 'regularMarketPreviousClose' does not exist on type 'never'.
+src/app/api/cron/sectors/route.ts(49,21): error TS2339: Property 'regularMarketVolume' does not exist on type 'never'.
+src/app/api/cron/sectors/route.ts(50,25): error TS2339: Property 'regularMarketChangePercent' does not exist on type 'never'.
+src/app/api/cron/sectors/route.ts(51,25): error TS2339: Property 'marketCap' does not exist on type 'never'.
+src/app/api/cron/sectors/route.ts(53,35): error TS2339: Property 'shortName' does not exist on type 'never'.
+src/app/api/cron/sectors/route.ts(53,50): error TS2339: Property 'symbol' does not exist on type 'never'.
+src/app/api/cron/yields/route.ts(41,20): error TS2339: Property 'suppressNotices' does not exist on type 'YahooFinanceWithModules<{ readonly modules: { readonly quoteCombine: { (this: ModuleThis, query: string, queryOptionsOverrides?: QuoteOptions | undefined, moduleOptions?: ModuleOptionsWithValidateTrue | undefined): Promise<...>; (this: ModuleThis, query: string, queryOptionsOverrides?: QuoteOptions | undefined, modu...'.
+src/app/api/cron/yields/route.ts(45,63): error TS2339: Property 'symbol' does not exist on type 'never'.
+src/app/api/cron/yields/route.ts(46,25): error TS2339: Property 'regularMarketPrice' does not exist on type 'never'.
+src/app/api/cron/yields/route.ts(47,41): error TS2339: Property 'regularMarketPrice' does not exist on type 'never'.
+src/components/panels/ChartPanel.tsx(52,11): error TS2353: Object literal may only specify known properties, and 'textColor' does not exist in type 'DeepPartial<TimeScaleOptions>'.
+src/components/panels/ChartPanel.tsx(59,64): error TS2339: Property 'addCandlestickSeries' does not exist on type 'IChartApi'.
+src/components/panels/ChartPanel.tsx(69,64): error TS2551: Property 'addHistogramSeries' does not exist on type 'IChartApi'. Did you mean 'addCustomSeries'?
+src/components/panels/ChartPanel.tsx(83,66): error TS2339: Property 'addCandlestickSeries' does not exist on type 'IChartApi'.
+src/components/panels/ChartPanel.tsx(84,66): error TS2339: Property 'addHistogramSeries' does not exist on type 'IChartApi'.

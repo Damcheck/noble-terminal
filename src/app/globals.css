@@ -1,26 +1,184 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-bg: #0a0a0a;
+  --color-bg-secondary: #111111;
+  --color-surface: #141414;
+  --color-surface-hover: #1e1e1e;
+  --color-surface-active: #1a1a2e;
+  --color-border: #2a2a2a;
+  --color-border-strong: #444444;
+  --color-border-subtle: #1a1a1a;
+  
+  --color-txt: #e8e8e8;
+  --color-txt-secondary: #cccccc;
+  --color-txt-dim: #888888;
+  --color-txt-muted: #666666;
+  --color-txt-faint: #555555;
+  --color-txt-ghost: #444444;
+  
+  --color-accent: #ffffff;
+  
+  --color-semantic-critical: #ff4444;
+  --color-semantic-high: #ff8800;
+  --color-semantic-elevated: #ffaa00;
+  --color-semantic-normal: #44aa44;
+  --color-semantic-low: #3388ff;
+  --color-semantic-info: #3b82f6;
+  --color-semantic-positive: #44ff88;
+  
+  --color-status-live: #44ff88;
+  --color-status-cached: #ffaa00;
+  
+  --color-overlay-subtle: rgba(255, 255, 255, 0.03);
+  --color-overlay-light: rgba(255, 255, 255, 0.05);
+  --color-overlay-medium: rgba(255, 255, 255, 0.1);
+  --color-overlay-heavy: rgba(255, 255, 255, 0.2);
+
+  --font-mono: 'SF Mono', 'Monaco', 'Cascadia Code', 'Fira Code', 'DejaVu Sans Mono', monospace;
+  --font-sans: 'Outfit', sans-serif;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+:root {
+  /* We define standard CSS variables as aliases for backward compatibility with the JSX styles */
+  --bg: #0a0a0a;
+  --bg-secondary: #111;
+  --surface: #141414;
+  --surface-hover: #1e1e1e;
+  --surface-active: #1a1a2e;
+  --border: #2a2a2a;
+  --border-strong: #444;
+  --border-subtle: #1a1a1a;
+  --text: #e8e8e8;
+  --text-secondary: #ccc;
+  --text-dim: #888;
+  --text-muted: #666;
+  --text-faint: #555;
+  --text-ghost: #444;
+  --accent: #fff;
+  --overlay-subtle: rgba(255,255,255,0.03);
+  --overlay-light: rgba(255,255,255,0.05);
+  --overlay-medium: rgba(255,255,255,0.1);
+  --overlay-heavy: rgba(255,255,255,0.2);
+  --panel-bg: #141414;
+  --panel-border: #2a2a2a;
+  --semantic-critical: #ff4444;
+  --semantic-high: #ff8800;
+  --semantic-elevated: #ffaa00;
+  --semantic-normal: #44aa44;
+  --semantic-low: #3388ff;
+  --semantic-info: #3b82f6;
+  --semantic-positive: #44ff88;
+  --red: #ff4444;
+  --green: #44ff88;
+  --yellow: #ffaa00;
+  --status-live: #44ff88;
+
+  --font-mono: 'Fira Code', 'SF Mono', 'Monaco', 'Cascadia Code', monospace;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--bg);
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  overflow-x: hidden;
+}
+
+*::-webkit-scrollbar { width: 4px; height: 4px; }
+*::-webkit-scrollbar-track { background: transparent; }
+*::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+/* GLOBAL APP UTILITIES */
+.terminal-root {
+  background: var(--bg);
+  min-height: 100vh;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-secondary);
+  overflow-x: hidden;
+}
+
+.val-up { color: var(--green); }
+.val-down { color: var(--red); }
+.val-neutral { color: var(--text-dim); }
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(68,255,136,0.4); }
+  50% { opacity: 0.7; box-shadow: 0 0 0 4px rgba(68,255,136,0); }
+}
+
+@keyframes pulse-alert {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+@keyframes tickerScroll {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+/* react-grid-layout overrides */
+.react-grid-layout {
+  position: relative;
+}
+
+.react-grid-item {
+  transition: none !important;
+  will-change: transform;
+}
+
+.react-grid-item.react-draggable-dragging {
+  opacity: 0.88;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  z-index: 100 !important;
+}
+
+.react-grid-item.resizing {
+  opacity: 0.88;
+  z-index: 100 !important;
+}
+
+.react-resizable-handle {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 14px;
+  height: 14px;
+  cursor: se-resize;
+  z-index: 5;
+}
+
+.react-resizable-handle::after {
+  content: '';
+  position: absolute;
+  right: 3px;
+  bottom: 3px;
+  width: 6px;
+  height: 6px;
+  border-right: 2px solid var(--border-strong);
+  border-bottom: 2px solid var(--border-strong);
+  border-radius: 1px;
+}
+
+.animate-pulse-dot {
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(3px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.react-grid-item.react-grid-placeholder {
+  background: var(--surface-hover) !important;
+  border: 1px dashed var(--border-strong);
+  opacity: 0.2;
+  transition-duration: 100ms;
+  z-index: 2;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  -o-user-select: none;
+  user-select: none;
 }

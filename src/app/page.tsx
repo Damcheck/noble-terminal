@@ -1,65 +1,225 @@
-import Image from "next/image";
+'use client';
 
-export default function Home() {
+import dynamic from 'next/dynamic';
+import { useState } from 'react';
+import { ResponsiveGridLayout, useContainerWidth } from 'react-grid-layout';
+import 'react-grid-layout/css/styles.css';
+import 'react-resizable/css/styles.css';
+
+import TerminalHeader from '@/components/layout/Header';
+import TerminalFooter from '@/components/layout/Footer';
+import HeatMapPanel from '@/components/panels/HeatMapPanel';
+import WatchlistPanel from '@/components/panels/WatchlistPanel';
+import ForexPanel from '@/components/panels/ForexPanel';
+import NewsFeedPanel from '@/components/panels/NewsFeedPanel';
+import EconCalendarPanel from '@/components/panels/EconCalendarPanel';
+import RiskPanel from '@/components/panels/RiskPanel';
+import { SectorPanel, CommoditiesPanel } from '@/components/panels/MarketPanels';
+import { MacroPanel } from '@/components/panels/MacroPanel';
+import OrderBookPanel from '@/components/panels/OrderBookPanel';
+import CryptoPanel from '@/components/panels/CryptoPanel';
+import AfricanMarketsPanel from '@/components/panels/AfricanMarketsPanel';
+import YieldCurvePanel from '@/components/panels/YieldCurvePanel';
+import DarkPoolPanel from '@/components/panels/DarkPoolPanel';
+import InsiderTradingPanel from '@/components/panels/InsiderTradingPanel';
+import CDSPanel from '@/components/panels/CDSPanel';
+import SupplyChainPanel from '@/components/panels/SupplyChainPanel';
+
+// Chart must be dynamic (uses browser APIs)
+const ChartPanel = dynamic(() => import('@/components/panels/ChartPanel'), { ssr: false });
+
+// Default layout — 12-col grid, rowHeight=32
+const DEFAULT_LAYOUTS = {
+  lg: [
+    { i: 'chart',       x: 0, y: 0,  w: 6, h: 10, minW: 4, minH: 7 },
+    { i: 'heatmap',     x: 6, y: 0,  w: 6, h: 10, minW: 4, minH: 6 },
+    { i: 'watchlist',   x: 0, y: 10, w: 3, h: 9,  minW: 2, minH: 6 },
+    { i: 'forex',       x: 3, y: 10, w: 3, h: 9,  minW: 2, minH: 6 },
+    { i: 'crypto',      x: 6, y: 10, w: 3, h: 9,  minW: 2, minH: 6 },
+    { i: 'orderbook',   x: 9, y: 10, w: 3, h: 9,  minW: 2, minH: 6 },
+    { i: 'news',        x: 0, y: 19, w: 6, h: 10, minW: 3, minH: 6 },
+    { i: 'econcal',     x: 6, y: 19, w: 3, h: 10, minW: 2, minH: 6 },
+    { i: 'risk',        x: 9, y: 19, w: 3, h: 10, minW: 2, minH: 8 },
+    { i: 'sector',      x: 0, y: 29, w: 3, h: 9,  minW: 2, minH: 6 },
+    { i: 'macro',       x: 3, y: 29, w: 3, h: 9,  minW: 2, minH: 6 },
+    { i: 'commodities', x: 6, y: 29, w: 3, h: 9,  minW: 2, minH: 6 },
+    { i: 'africa',      x: 9, y: 29, w: 3, h: 9,  minW: 2, minH: 6 },
+    { i: 'yield',       x: 0, y: 38, w: 4, h: 9,  minW: 3, minH: 7 },
+    { i: 'darkpool',    x: 4, y: 38, w: 4, h: 9,  minW: 3, minH: 6 },
+    { i: 'capitol',     x: 8, y: 38, w: 4, h: 9,  minW: 3, minH: 6 },
+    { i: 'cds',         x: 0, y: 47, w: 4, h: 9,  minW: 3, minH: 6 },
+    { i: 'splc',        x: 4, y: 47, w: 6, h: 9,  minW: 4, minH: 8 },
+  ],
+};
+
+const PANELS = [
+  { id: 'chart',       label: 'Chart',           Component: ChartPanel },
+  { id: 'heatmap',     label: 'Heat Map',        Component: HeatMapPanel },
+  { id: 'watchlist',   label: 'Watchlist',       Component: WatchlistPanel },
+  { id: 'forex',       label: 'Forex',           Component: ForexPanel },
+  { id: 'crypto',      label: 'Crypto',          Component: CryptoPanel },
+  { id: 'orderbook',   label: 'Order Book',      Component: OrderBookPanel },
+  { id: 'news',        label: 'News',            Component: NewsFeedPanel },
+  { id: 'econcal',     label: 'Econ Cal',        Component: EconCalendarPanel },
+  { id: 'risk',        label: 'Risk',            Component: RiskPanel },
+  { id: 'sector',      label: 'Sectors',         Component: SectorPanel },
+  { id: 'macro',       label: 'Macro',           Component: MacroPanel },
+  { id: 'commodities', label: 'Commodities',     Component: CommoditiesPanel },
+  { id: 'africa',      label: 'NGX',             Component: AfricanMarketsPanel },
+  { id: 'yield',       label: 'Yield Curve',     Component: YieldCurvePanel },
+  { id: 'darkpool',    label: 'Dark Pool',       Component: DarkPoolPanel },
+  { id: 'capitol',     label: 'Capitol Hill',    Component: InsiderTradingPanel },
+  { id: 'cds',         label: 'CDS Spreads',     Component: CDSPanel },
+  { id: 'splc',        label: 'Supply Chain',    Component: SupplyChainPanel },
+] as const;
+
+export default function TerminalPage() {
+  const [hidden, setHidden] = useState<Set<string>>(new Set());
+
+  const toggle = (id: string) =>
+    setHidden(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+
+  const visiblePanels = PANELS.filter(p => !hidden.has(p.id));
+  const visibleLayout = (DEFAULT_LAYOUTS.lg).filter(l => !hidden.has(l.i));
+
+  const { width, containerRef, mounted } = useContainerWidth();
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: 'var(--bg)', overflow: 'hidden' }}>
+      <TerminalHeader />
+
+      {/* Panel Toggle Bar */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 3,
+          padding: '4px 8px',
+          background: 'var(--bg-secondary)',
+          borderBottom: '1px solid var(--border)',
+          flexShrink: 0,
+          flexWrap: 'wrap',
+        }}
+      >
+        <span style={{ fontSize: 9, color: 'var(--text-ghost)', marginRight: 4, letterSpacing: 0.5, flexShrink: 0 }}>
+          PANELS:
+        </span>
+        {PANELS.map(p => {
+          const isHidden = hidden.has(p.id);
+          return (
+            <button
+              key={p.id}
+              onClick={() => toggle(p.id)}
+              style={{
+                fontSize: 9,
+                padding: '2px 7px',
+                borderRadius: 2,
+                border: `1px solid ${isHidden ? 'var(--border-subtle)' : 'var(--border)'}`,
+                background: isHidden ? 'transparent' : 'var(--overlay-subtle)',
+                color: isHidden ? 'var(--text-ghost)' : 'var(--text-dim)',
+                cursor: 'pointer',
+                letterSpacing: 0.3,
+                textDecoration: isHidden ? 'line-through' : 'none',
+                transition: 'all 0.1s',
+                fontFamily: 'var(--font-mono)',
+              }}
             >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+              {p.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Main grid area */}
+      <main ref={containerRef} style={{ flex: 1, overflow: 'auto', padding: 4 }}>
+        {mounted && (
+          <ResponsiveGridLayout
+            width={width}
+            layouts={{ lg: visibleLayout }}
+            breakpoints={{ lg: 1280, md: 996, sm: 768 }}
+            cols={{ lg: 12, md: 8, sm: 4 }}
+            rowHeight={32}
+            margin={[4, 4]}
+            containerPadding={[0, 0]}
+            dragConfig={{ handle: '.drag-handle' }}
+            resizeConfig={{ enabled: true }}
+            style={{ minHeight: '100%' }}
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
+            {visiblePanels.map(({ id, Component }) => (
+              <div key={id} style={{ overflow: 'hidden' }}>
+                <GridItem id={id} onClose={() => toggle(id)}>
+                  <Component />
+                </GridItem>
+              </div>
+            ))}
+          </ResponsiveGridLayout>
+        )}
       </main>
+
+      <TerminalFooter />
+    </div>
+  );
+}
+
+// Thin wrapper: invisible drag handle + close button on top of each panel
+function GridItem({
+  id,
+  onClose,
+  children,
+}: {
+  id: string;
+  onClose: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <div style={{ height: '100%', position: 'relative', display: 'flex', flexDirection: 'column' }}>
+      {/* Drag handle covers header area */}
+      <div
+        className="drag-handle"
+        title="Drag to move"
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 26,
+          height: 26,
+          cursor: 'move',
+          zIndex: 10,
+        }}
+      />
+      {/* Close button */}
+      <button
+        onClick={onClose}
+        title="Hide panel"
+        style={{
+          position: 'absolute',
+          top: 5,
+          right: 6,
+          zIndex: 20,
+          width: 16,
+          height: 16,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: 'transparent',
+          border: 'none',
+          cursor: 'pointer',
+          color: 'var(--text-ghost)',
+          fontSize: 14,
+          lineHeight: 1,
+          borderRadius: 2,
+        }}
+        onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.color = '#ff4444'; }}
+        onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-ghost)'; }}
+      >
+        ×
+      </button>
+      {/* Panel fills remaining space */}
+      <div style={{ flex: 1, overflow: 'hidden' }}>{children}</div>
     </div>
   );
 }

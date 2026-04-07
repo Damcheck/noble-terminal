@@ -1,0 +1,36 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/prices",
+      "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/cron/crypto",
+      "schedule": "*/3 * * * *"
+    },
+    {
+      "path": "/api/cron/forex",
+      "schedule": "*/2 * * * *"
+    },
+    {
+      "path": "/api/cron/news",
+      "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/cron/calendar",
+      "schedule": "0 */1 * * *"
+    },
+    {
+      "path": "/api/cron/macro",
+      "schedule": "0 */6 * * *"
+    },
+    {
+      "path": "/api/cron/yields",
+      "schedule": "0 */6 * * *"
+    },
+    {
+      "path": "/api/cron/sectors",
+      "schedule": "*/15 * * * *"
+    }
+  ]
+}
