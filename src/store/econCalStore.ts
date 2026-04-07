@@ -48,7 +48,8 @@ export const useEconCalStore = create<EconCalState>((set, get) => ({
   },
 
   initializeRealtime: () => {
-    if (get().isRealtimeConnected) return
+    if (get().isRealtimeConnected) return;
+    set({ isRealtimeConnected: true }); // Sync lock to prevent React StrictMode double-fire
 
     supabase
       .from('economic_events')
