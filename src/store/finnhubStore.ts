@@ -18,11 +18,18 @@ export const FINNHUB_SYMBOLS: Record<string, string> = {
   'BINANCE:SOLUSDT':   'SOL-USD',
   'BINANCE:BNBUSDT':   'BNB-USD',
   'BINANCE:XRPUSDT':   'XRP-USD',
-  // Forex (via OANDA)
-  'OANDA:EUR_USD':     'EUR/USD',
-  'OANDA:GBP_USD':     'GBP/USD',
-  'OANDA:USD_JPY':     'USD/JPY',
-  'OANDA:XAU_USD':     'XAU/USD',
+  // Forex & Metals (via OANDA - Finnhub free tier)
+  'OANDA:EUR_USD':     'EURUSD',
+  'OANDA:GBP_USD':     'GBPUSD',
+  'OANDA:USD_JPY':     'USDJPY',
+  'OANDA:GBP_JPY':     'GBPJPY',
+  'OANDA:USD_CAD':     'USDCAD',
+  'OANDA:XAU_USD':     'XAUUSD',
+  'OANDA:XAG_USD':     'XAGUSD',
+  // Commodities
+  'OANDA:WTICO_USD':   'USOIL', // WTI Crude / OIL30 equivalent
+  'OANDA:BCO_USD':     'BRENT',
+  'OANDA:XCU_USD':     'COPPER',
 };
 
 // Reverse map: our internal key → Finnhub symbol

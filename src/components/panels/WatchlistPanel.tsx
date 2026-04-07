@@ -24,38 +24,40 @@ export default function WatchlistPanel() {
   const renderList = useMemo(() => {
     return FOREX_PAIRS.map(item => {
       // Priority 1: Finnhub live tick (second-by-second)
-      // Finnhub uses OANDA:EUR_USD format, so we check various formats
+      // Finnhub uses OANDA format
       const fhSymbol1 = `OANDA:${item.symbol.replace('USD', '_USD')}`;
-      const tick = ticks[item.symbol] || ticks[fhSymbol1];
+      const tick = ticks[item.symbol] || ticks[fhSymbol1] || ticks[`OANDA:${item.symbol}`];
       
-      // Fallback pseudo-random for visual movement if no Finnhub tick
-      const basePrice = item.symbol.includes('JPY') ? 150 : item.symbol.includes('XAU') ? 2400 : 1.1;
-      const fakeTick = basePrice + (Math.random() - 0.5) * (basePrice * 0.001);
+      const isJpy = item.symbol.includes('JPY');
+      const isGold = item.symbol.includes('XAU');
+      const isSilver = item.symbol.includes('XAG');
+      const baseExpected = isJpy ? 150 : isGold ? 2450.10 : isSilver ? 30.2 : item.symbol === 'USOIL' ? 82.50 : 1.085;
       
-      if (tick) {
+      if (tick?.price) {
         return {
           ...item,
           price: tick.price,
-          change: prices[item.symbol]?.change_pct ?? (Math.random() - 0.5) * 0.5,
+          change: prices[item.symbol]?.change_pct ?? 0,
           _hasTick: true,
         };
       }
 
-      // Priority 2: Supabase DB price or simulated
+      // Priority 2: Supabase DB price
       const liveData = prices[item.symbol];
-      if (liveData) {
+      if (liveData?.price) {
         return {
           ...item,
-          price: liveData.price ?? fakeTick,
-          change: liveData.change_pct ?? (Math.random() - 0.5) * 0.2,
+          price: liveData.price,
+          change: liveData.change_pct ?? 0,
           _hasTick: false,
         };
       }
 
+      // Priority 3: Fallback exact value if DB empty and Finnhub disconnected (no fake noise)
       return { 
         ...item, 
-        price: fakeTick, 
-        change: parseFloat(((Math.random() - 0.5) * 0.4).toFixed(2)),
+        price: baseExpected, 
+        change: 0,
         _hasTick: false 
       };
     });

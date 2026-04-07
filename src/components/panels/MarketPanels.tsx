@@ -26,24 +26,14 @@ export function SectorPanel() {
 }
 
 // ── Commodities — live Finnhub ticks + Supabase fallback ──────
-const COMMODITY_SYMBOLS = ['GC=F', 'SI=F', 'CL=F', 'NG=F', 'HG=F', 'PL=F'];
+const COMMODITY_SYMBOLS = ['XAUUSD', 'XAGUSD', 'USOIL', 'BRENT', 'COPPER'];
 const COMMODITY_META: Record<string, { name: string; unit: string; highlight?: boolean }> = {
-  'GC=F': { name: 'Gold',         unit: 'XAU/USD · per oz',   highlight: true },
-  'SI=F': { name: 'Silver',       unit: 'XAG/USD · per oz' },
-  'CL=F': { name: 'Crude Oil',    unit: 'WTI · per bbl',       highlight: true },
-  'NG=F': { name: 'Natural Gas',  unit: 'per MMBtu' },
-  'HG=F': { name: 'Copper',       unit: 'per lb' },
-  'PL=F': { name: 'Platinum',     unit: 'per oz' },
+  'XAUUSD': { name: 'Gold',         unit: 'XAU/USD · per oz',   highlight: true },
+  'XAGUSD': { name: 'Silver',       unit: 'XAG/USD · per oz' },
+  'USOIL':  { name: 'Crude Oil',    unit: 'WTI · per bbl',       highlight: true },
+  'BRENT':  { name: 'Brent Oil',    unit: 'UKOIL · per bbl' },
+  'COPPER': { name: 'Copper',       unit: 'per lb' },
 };
-
-const COMMODITY_FALLBACK = [
-  { symbol: 'GC=F',  name: 'Gold',        unit: 'XAU/USD · per oz',  price: 2978.45, change: 1.34, highlight: true },
-  { symbol: 'SI=F',  name: 'Silver',       unit: 'XAG/USD · per oz',  price: 34.12,   change: 0.82 },
-  { symbol: 'CL=F',  name: 'Crude Oil',    unit: 'WTI · per bbl',     price: 71.34,   change: -0.94, highlight: true },
-  { symbol: 'NG=F',  name: 'Natural Gas',  unit: 'per MMBtu',         price: 3.45,    change: 1.21 },
-  { symbol: 'HG=F',  name: 'Copper',       unit: 'per lb',            price: 4.87,    change: -0.3 },
-  { symbol: 'PL=F',  name: 'Platinum',     unit: 'per oz',            price: 980.0,   change: 0.5 },
-];
 
 export function CommoditiesPanel() {
   const { prices, initializeRealtime } = useMarketStore();
@@ -54,20 +44,27 @@ export function CommoditiesPanel() {
   const commodityRows = useMemo(() => {
     return COMMODITY_SYMBOLS.map(sym => {
       const meta = COMMODITY_META[sym];
-      // Priority: Finnhub tick → Supabase price → fallback
-      const tick = ticks[sym];
-      const live = prices[sym];
-      const fb = COMMODITY_FALLBACK.find(c => c.symbol === sym)!;
+      // Priority: Finnhub tick → Supabase price → Realistic Anchor if DB isn't synced
+      const tick = ticks[sym] || ticks[`OANDA:${sym}`];
+      const live = prices[sym] || prices[sym === 'USOIL' ? 'CL=F' : ''];
+
+      let price = 0;
+      let change = 0;
 
       if (tick?.price) {
+        price = tick.price;
         const prev = tick.prevPrice ?? tick.price;
-        const changePct = prev > 0 ? ((tick.price - prev) / prev) * 100 : 0;
-        return { symbol: sym, name: meta.name, unit: meta.unit, price: tick.price, change: changePct, highlight: meta.highlight };
+        change = prev > 0 ? ((tick.price - prev) / prev) * 100 : 0;
+      } else if (live?.price) {
+        price = live.price;
+        change = live.change_pct;
+      } else {
+        // Only if user hasn't run crons or finnhub is disconnected
+        price = sym === 'XAUUSD' ? 2450.10 : sym === 'USOIL' ? 82.50 : sym === 'XAGUSD' ? 30.2 : sym === 'BRENT' ? 86.40 : 4.50;
+        change = 0;
       }
-      if (live?.price) {
-        return { symbol: sym, name: meta.name, unit: meta.unit, price: live.price, change: live.change_pct, highlight: meta.highlight };
-      }
-      return fb;
+
+      return { symbol: sym, name: meta.name, unit: meta.unit, price, change, highlight: meta.highlight };
     });
   }, [prices, ticks]);
 

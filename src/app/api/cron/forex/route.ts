@@ -9,16 +9,16 @@ const supabase = createClient(
 
 // Yahoo Finance forex symbols
 const FOREX_YAHOO = [
-  { symbol: 'EURUSD=X', pair: 'EUR/USD' },
-  { symbol: 'GBPUSD=X', pair: 'GBP/USD' },
-  { symbol: 'USDJPY=X', pair: 'USD/JPY' },
-  { symbol: 'USDCHF=X', pair: 'USD/CHF' },
-  { symbol: 'AUDUSD=X', pair: 'AUD/USD' },
-  { symbol: 'EURGBP=X', pair: 'EUR/GBP' },
-  { symbol: 'USDNGN=X', pair: 'USD/NGN' },
-  { symbol: 'USDZAR=X', pair: 'USD/ZAR' },
-  { symbol: 'USDKES=X', pair: 'USD/KES' },
-  { symbol: 'GC=F',     pair: 'XAU/USD' }, // Gold as special forex
+  { symbol: 'EURUSD=X', pair: 'EURUSD' },
+  { symbol: 'GBPUSD=X', pair: 'GBPUSD' },
+  { symbol: 'USDJPY=X', pair: 'USDJPY' },
+  { symbol: 'USDCHF=X', pair: 'USDCHF' },
+  { symbol: 'AUDUSD=X', pair: 'AUDUSD' },
+  { symbol: 'GBPJPY=X', pair: 'GBPJPY' },
+  { symbol: 'USDCAD=X', pair: 'USDCAD' },
+  { symbol: 'USDNGN=X', pair: 'USDNGN' },
+  { symbol: 'GC=F',     pair: 'XAUUSD' }, // Gold
+  { symbol: 'SI=F',     pair: 'XAGUSD' }, // Silver
 ]
 
 export const revalidate = 0
