@@ -5,9 +5,7 @@ import { Panel, PanelHeader, PanelContent, LiveBadge, Sparkline } from '@/compon
 import { CRYPTO_LIST as MOCK_CRYPTO_LIST } from '@/lib/mockData';
 import { useMarketStore } from '@/store/marketStore';
 
-const FEAR_GREED = { value: 61, label: 'GREED' };
-const BTC_DOM = 52.4;
-const TOTAL_MCAP = '2.81T';
+const FEAR_GREED_MOCK = { value: 61, label: 'GREED' };
 
 function getFearColor(v: number) {
   if (v < 25) return '#ff4444';
@@ -24,9 +22,16 @@ export default function CryptoPanel() {
     initializeRealtime();
   }, [initializeRealtime]);
 
-  
-  const color = getFearColor(FEAR_GREED.value);
-  const fill = (FEAR_GREED.value / 100) * 157;
+  const globalMeta = prices['__CRYPTO_GLOBAL__'];
+  const btcDom = globalMeta?.extra?.btc_dominance 
+    ? `${Number(globalMeta.extra.btc_dominance).toFixed(1)}%` 
+    : '52.4%';
+  const totalMcap = globalMeta?.price 
+    ? `$${(globalMeta.price / 1e12).toFixed(2)}T` 
+    : '2.81T';
+
+  const color = getFearColor(FEAR_GREED_MOCK.value);
+  const fill = (FEAR_GREED_MOCK.value / 100) * 157;
 
   // Merge Realtime Data into Mock data array for layout stability
   const renderList = useMemo(() => {
@@ -63,19 +68,19 @@ export default function CryptoPanel() {
           <svg viewBox="0 0 80 46" style={{ width: 80, height: 46, flexShrink: 0 }}>
             <path d="M 7 40 A 33 33 0 0 1 73 40" fill="none" stroke="var(--border-strong)" strokeWidth={5} strokeLinecap="round" />
             <path d="M 7 40 A 33 33 0 0 1 73 40" fill="none" stroke={color} strokeWidth={5} strokeLinecap="round" strokeDasharray={`${fill * 0.67} 105`} />
-            <text x="40" y="36" textAnchor="middle" fill={color} fontSize="14" fontWeight="700" fontFamily="var(--font-mono)">{FEAR_GREED.value}</text>
+            <text x="40" y="36" textAnchor="middle" fill={color} fontSize="14" fontWeight="700" fontFamily="var(--font-mono)">{FEAR_GREED_MOCK.value}</text>
           </svg>
           <div>
             <div style={{ fontSize: 9, color: 'var(--text-ghost)', letterSpacing: 0.5 }}>FEAR & GREED</div>
-            <div style={{ fontSize: 12, fontWeight: 700, color }}>{FEAR_GREED.label}</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color }}>{FEAR_GREED_MOCK.label}</div>
           </div>
           <div style={{ marginLeft: 'auto', textAlign: 'right' }}>
             <div style={{ fontSize: 9, color: 'var(--text-ghost)' }}>BTC DOM</div>
-            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text)' }}>{BTC_DOM}%</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text)' }}>{btcDom}</div>
           </div>
           <div style={{ textAlign: 'right' }}>
             <div style={{ fontSize: 9, color: 'var(--text-ghost)' }}>TOTAL MCAP</div>
-            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text)' }}>{TOTAL_MCAP}</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text)' }}>{totalMcap}</div>
           </div>
         </div>
 

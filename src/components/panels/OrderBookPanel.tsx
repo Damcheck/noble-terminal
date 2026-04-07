@@ -1,17 +1,58 @@
 'use client';
 
+import { useMemo } from 'react';
 import { Panel, PanelHeader, PanelContent, LiveBadge } from '@/components/ui/Panel';
 import { ORDER_BOOK } from '@/lib/mockData';
+import { useMarketStore } from '@/store/marketStore';
+
+// Generate simulated order-book levels around a mid price
+function generateLevels(mid: number, count: number, side: 'ask' | 'bid') {
+  const levels = [];
+  let cumSize = 0;
+  const tickSize = mid > 1000 ? 0.5 : mid > 10 ? 0.05 : 0.0001;
+  for (let i = 0; i < count; i++) {
+    const offset = (i + 1) * tickSize;
+    const price = side === 'ask' ? mid + offset : mid - offset;
+    const size = parseFloat((Math.random() * 3 + 0.3).toFixed(2));
+    cumSize += size;
+    levels.push({ price, size, total: parseFloat(cumSize.toFixed(2)) });
+  }
+  return side === 'ask' ? levels.reverse() : levels;
+}
 
 export default function OrderBookPanel() {
+  const { prices, isRealtimeConnected } = useMarketStore();
+
+  // Try BTC-USD first, then XAU/USD from store; fall back to mock
+  const livePrice =
+    prices['BTC-USD']?.price ||
+    prices['XAU/USD']?.bid ||
+    prices['GC=F']?.price;
+
+  const book = useMemo(() => {
+    if (!livePrice) return ORDER_BOOK;
+    const mid = livePrice;
+    const asks = generateLevels(mid, 5, 'ask');
+    const bids = generateLevels(mid, 5, 'bid');
+    const spread = (asks[asks.length - 1].price - bids[0].price).toFixed(2);
+    return { asks, bids, spread };
+  }, [livePrice]);
+
   const maxTotal = Math.max(
-    ...ORDER_BOOK.asks.map(a => a.total),
-    ...ORDER_BOOK.bids.map(b => b.total)
+    ...book.asks.map(a => a.total),
+    ...book.bids.map(b => b.total)
   );
+
+  const label = livePrice
+    ? prices['BTC-USD'] ? 'BTC/USD' : 'XAU/USD'
+    : 'XAU/USD';
 
   return (
     <Panel>
-      <PanelHeader title="Order Book" badge={<LiveBadge />} />
+      <PanelHeader
+        title={`Order Book — ${label}`}
+        badge={isRealtimeConnected ? <LiveBadge /> : undefined}
+      />
       <PanelContent noPad>
         {/* Column Headers */}
         <div
@@ -32,7 +73,7 @@ export default function OrderBookPanel() {
 
         {/* Asks (sell orders — red) */}
         <div style={{ display: 'flex', flexDirection: 'column-reverse' }}>
-          {ORDER_BOOK.asks.map(ask => {
+          {book.asks.map(ask => {
             const barW = (ask.total / maxTotal) * 100;
             return (
               <div
@@ -51,13 +92,9 @@ export default function OrderBookPanel() {
               >
                 <div
                   style={{
-                    position: 'absolute',
-                    right: 0,
-                    top: 0,
-                    height: '100%',
-                    width: `${barW}%`,
-                    background: 'rgba(255,68,68,0.12)',
-                    zIndex: 0,
+                    position: 'absolute', right: 0, top: 0,
+                    height: '100%', width: `${barW}%`,
+                    background: 'rgba(255,68,68,0.12)', zIndex: 0,
                   }}
                 />
                 <span style={{ color: '#ff4444', position: 'relative', zIndex: 1 }}>{ask.price.toFixed(2)}</span>
@@ -71,29 +108,23 @@ export default function OrderBookPanel() {
         {/* Spread */}
         <div
           style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 8,
-            padding: '5px 8px',
-            background: 'var(--overlay-light)',
-            borderTop: '1px solid var(--border)',
-            borderBottom: '1px solid var(--border)',
-            fontSize: 10,
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+            padding: '5px 8px', background: 'var(--overlay-light)',
+            borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)', fontSize: 10,
           }}
         >
           <span style={{ color: 'var(--text-muted)' }}>SPREAD</span>
           <span style={{ color: 'var(--text)', fontWeight: 700, fontFamily: 'var(--font-mono)' }}>
-            {ORDER_BOOK.spread}
+            {book.spread}
           </span>
           <span style={{ fontSize: 9, color: 'var(--text-ghost)' }}>
-            ({((parseFloat(ORDER_BOOK.spread) / ORDER_BOOK.bids[0].price) * 100).toFixed(4)}%)
+            ({((parseFloat(book.spread) / book.bids[0].price) * 100).toFixed(4)}%)
           </span>
         </div>
 
         {/* Bids (buy orders — green) */}
         <div>
-          {ORDER_BOOK.bids.map(bid => {
+          {book.bids.map(bid => {
             const barW = (bid.total / maxTotal) * 100;
             return (
               <div
@@ -112,13 +143,9 @@ export default function OrderBookPanel() {
               >
                 <div
                   style={{
-                    position: 'absolute',
-                    left: 0,
-                    top: 0,
-                    height: '100%',
-                    width: `${barW}%`,
-                    background: 'rgba(68,255,136,0.1)',
-                    zIndex: 0,
+                    position: 'absolute', left: 0, top: 0,
+                    height: '100%', width: `${barW}%`,
+                    background: 'rgba(68,255,136,0.1)', zIndex: 0,
                   }}
                 />
                 <span style={{ color: '#44ff88', position: 'relative', zIndex: 1 }}>{bid.price.toFixed(2)}</span>

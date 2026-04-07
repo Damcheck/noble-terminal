@@ -1,10 +1,16 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Panel, PanelHeader, PanelContent, LiveBadge, TabBar } from '@/components/ui/Panel';
 import { HEATMAP_DATA } from '@/lib/mockData';
+import { useMarketStore } from '@/store/marketStore';
 
 const TABS = ['S&P 500', 'NASDAQ', 'CRYPTO', 'FOREX'];
+
+// S&P 500 / NASDAQ symbols we track via market_prices cron
+const SP500_SYMBOLS = ['AAPL', 'MSFT', 'NVDA', 'GOOGL', 'AMZN', 'META', 'TSLA', 'BRK.B', 'LLY', 'JPM', 'V', 'UNH', 'XOM', 'JNJ', 'WMT', 'AVGO', 'MA', 'HD', 'ORCL', 'COST'];
+const CRYPTO_SYMBOLS = ['BTC-USD', 'ETH-USD', 'BNB-USD', 'SOL-USD', 'XRP-USD', 'DOGE-USD', 'ADA-USD', 'AVAX-USD', 'DOT-USD', 'LINK-USD'];
+const FOREX_SYMBOLS = ['EURUSD=X', 'GBPUSD=X', 'USDJPY=X', 'AUDUSD=X', 'USDCHF=X', 'USDCAD=X', 'EURGBP=X', 'XAUUSD=X'];
 
 function getCellColor(change: number): string {
   const abs = Math.abs(change);
@@ -25,12 +31,35 @@ function getBorderColor(change: number): string {
 export default function HeatMapPanel() {
   const [activeTab, setActiveTab] = useState('S&P 500');
   const [hovered, setHovered] = useState<string | null>(null);
+  const { prices, isRealtimeConnected } = useMarketStore();
 
-  const totalMcap = HEATMAP_DATA.reduce((s, d) => s + d.mcap, 0);
+  const heatmapData = useMemo(() => {
+    let symbols: string[] = [];
+    if (activeTab === 'S&P 500' || activeTab === 'NASDAQ') symbols = SP500_SYMBOLS;
+    if (activeTab === 'CRYPTO') symbols = CRYPTO_SYMBOLS;
+    if (activeTab === 'FOREX') symbols = FOREX_SYMBOLS;
+
+    const liveItems = symbols
+      .map(sym => prices[sym])
+      .filter(Boolean)
+      .map(p => ({
+        symbol: p.symbol.replace('-USD', '').replace('=X', ''),
+        change: p.change_pct ?? 0,
+        mcap: p.market_cap ? p.market_cap / 1e12 : 0.1,
+      }));
+
+    // Fall back to mock data for S&P 500 if not enough live data
+    if (liveItems.length < 5 && (activeTab === 'S&P 500' || activeTab === 'NASDAQ')) {
+      return HEATMAP_DATA;
+    }
+    return liveItems.length > 0 ? liveItems : HEATMAP_DATA;
+  }, [prices, activeTab]);
+
+  const totalMcap = heatmapData.reduce((s, d) => s + d.mcap, 0);
 
   return (
     <Panel>
-      <PanelHeader title="Market Heat Map" badge={<LiveBadge />} />
+      <PanelHeader title="Market Heat Map" badge={isRealtimeConnected ? <LiveBadge /> : undefined} />
       <TabBar tabs={TABS} active={activeTab} onSelect={setActiveTab} />
       <PanelContent noPad>
         <div
@@ -42,8 +71,8 @@ export default function HeatMapPanel() {
             height: '100%',
           }}
         >
-          {HEATMAP_DATA.map(item => {
-            const weight = (item.mcap / totalMcap) * 100;
+          {heatmapData.map(item => {
+            const weight = totalMcap > 0 ? (item.mcap / totalMcap) * 100 : 0;
             const isHovered = hovered === item.symbol;
             return (
               <div
@@ -67,14 +96,7 @@ export default function HeatMapPanel() {
                   boxShadow: isHovered ? `0 0 12px ${getBorderColor(item.change)}` : 'none',
                 }}
               >
-                <span
-                  style={{
-                    fontSize: 10,
-                    fontWeight: 700,
-                    color: 'var(--text)',
-                    letterSpacing: 0.3,
-                  }}
-                >
+                <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text)', letterSpacing: 0.3 }}>
                   {item.symbol}
                 </span>
                 <span
@@ -105,7 +127,7 @@ export default function HeatMapPanel() {
                       marginBottom: 4,
                     }}
                   >
-                    MCap: {item.mcap}T · Weight: {weight.toFixed(1)}%
+                    {item.mcap > 0 ? `MCap: ${item.mcap.toFixed(1)}T · ` : ''}Weight: {weight.toFixed(1)}%
                   </div>
                 )}
               </div>

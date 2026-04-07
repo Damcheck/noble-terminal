@@ -1,11 +1,31 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { TICKER_ITEMS, MARKET_STATUS } from '@/lib/mockData';
+import { useMarketStore } from '@/store/marketStore';
+
+// Symbols in the ticker tape mapped to their store keys
+const TICKER_SYMBOL_MAP: Record<string, string> = {
+  'S&P 500':  'SPY',
+  'NASDAQ':   'QQQ',
+  'DOW':      'DIA',
+  'XAU/USD':  'GC=F',
+  'BTC/USD':  'BTC-USD',
+  'EUR/USD':  'EURUSD=X',
+  'GBP/USD':  'GBPUSD=X',
+  'VIX':      '^VIX',
+  'USD/NGN':  'USDNGN=X',
+  'WTI OIL':  'CL=F',
+  'NVDA':     'NVDA',
+  'TSLA':     'TSLA',
+  'AAPL':     'AAPL',
+  'ETH/USD':  'ETH-USD',
+};
 
 export default function TerminalHeader() {
   const [time, setTime] = useState('');
   const [date, setDate] = useState('');
+  const { prices } = useMarketStore();
 
   useEffect(() => {
     const tick = () => {
@@ -18,8 +38,31 @@ export default function TerminalHeader() {
     return () => clearInterval(id);
   }, []);
 
-  // Duplicate ticker items so the scroll looks seamless
-  const tapeItems = [...TICKER_ITEMS, ...TICKER_ITEMS];
+  // Merge live prices into ticker items where available
+  const tapeItems = useMemo(() => {
+    return TICKER_ITEMS.map(item => {
+      const storeKey = TICKER_SYMBOL_MAP[item.symbol];
+      const live = storeKey ? prices[storeKey] : null;
+      if (live && live.price) {
+        const up = live.change_pct >= 0;
+        const priceStr = live.price >= 1000
+          ? live.price.toLocaleString('en-US', { maximumFractionDigits: 2 })
+          : live.price >= 1
+          ? live.price.toFixed(2)
+          : live.price.toFixed(4);
+        return {
+          symbol: item.symbol,
+          price: priceStr,
+          change: `${up ? '+' : ''}${live.change_pct.toFixed(2)}%`,
+          up,
+        };
+      }
+      return item;
+    });
+  }, [prices]);
+
+  // Duplicate for seamless scroll
+  const scrollItems = [...tapeItems, ...tapeItems];
 
   return (
     <header
@@ -52,14 +95,9 @@ export default function TerminalHeader() {
           </span>
           <span
             style={{
-              fontSize: 9,
-              fontWeight: 600,
-              color: 'var(--text-dim)',
-              background: 'var(--surface)',
-              border: '1px solid var(--border)',
-              padding: '2px 6px',
-              borderRadius: 2,
-              letterSpacing: 1,
+              fontSize: 9, fontWeight: 600, color: 'var(--text-dim)',
+              background: 'var(--surface)', border: '1px solid var(--border)',
+              padding: '2px 6px', borderRadius: 2, letterSpacing: 1,
             }}
           >
             TERMINAL v1.0
@@ -72,19 +110,12 @@ export default function TerminalHeader() {
             <div key={m.name} className="flex items-center gap-1">
               <div
                 style={{
-                  width: 5,
-                  height: 5,
-                  borderRadius: '50%',
-                  background: m.color,
-                  flexShrink: 0,
+                  width: 5, height: 5, borderRadius: '50%',
+                  background: m.color, flexShrink: 0,
                 }}
               />
-              <span style={{ fontSize: 9, color: 'var(--text-muted)', letterSpacing: 0.5 }}>
-                {m.name}
-              </span>
-              <span style={{ fontSize: 9, color: m.color, fontWeight: 700 }}>
-                {m.status}
-              </span>
+              <span style={{ fontSize: 9, color: 'var(--text-muted)', letterSpacing: 0.5 }}>{m.name}</span>
+              <span style={{ fontSize: 9, color: m.color, fontWeight: 700 }}>{m.status}</span>
             </div>
           ))}
         </div>
@@ -94,12 +125,9 @@ export default function TerminalHeader() {
           <span style={{ fontSize: 10, color: 'var(--text-muted)', letterSpacing: 0.5 }}>{date}</span>
           <span
             style={{
-              fontSize: 12,
-              fontFamily: 'var(--font-mono)',
-              color: 'var(--text)',
-              letterSpacing: 1,
-              minWidth: 90,
-              textAlign: 'right',
+              fontSize: 12, fontFamily: 'var(--font-mono)',
+              color: 'var(--text)', letterSpacing: 1,
+              minWidth: 90, textAlign: 'right',
             }}
           >
             {time}
@@ -119,7 +147,7 @@ export default function TerminalHeader() {
             willChange: 'transform',
           }}
         >
-          {tapeItems.map((item, i) => (
+          {scrollItems.map((item, i) => (
             <span
               key={i}
               className="inline-flex items-center gap-1.5 px-4"

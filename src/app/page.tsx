@@ -1,10 +1,16 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ResponsiveGridLayout, useContainerWidth } from 'react-grid-layout';
 import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
+
+import { useMarketStore } from '@/store/marketStore';
+import { useMacroStore } from '@/store/macroStore';
+import { useNewsStore } from '@/store/newsStore';
+import { useEconCalStore } from '@/store/econCalStore';
+import { useYieldStore } from '@/store/yieldStore';
 
 import TerminalHeader from '@/components/layout/Header';
 import TerminalFooter from '@/components/layout/Footer';
@@ -75,6 +81,20 @@ const PANELS = [
 
 export default function TerminalPage() {
   const [hidden, setHidden] = useState<Set<string>>(new Set());
+
+  const initMarket = useMarketStore(s => s.initializeRealtime);
+  const initMacro = useMacroStore(s => s.initializeRealtime);
+  const initNews = useNewsStore(s => s.initializeRealtime);
+  const initEcon = useEconCalStore(s => s.initializeRealtime);
+  const initYield = useYieldStore(s => s.initializeRealtime);
+
+  useEffect(() => {
+    initMarket();
+    initMacro();
+    initNews();
+    initEcon();
+    initYield();
+  }, [initMarket, initMacro, initNews, initEcon, initYield]);
 
   const toggle = (id: string) =>
     setHidden(prev => {

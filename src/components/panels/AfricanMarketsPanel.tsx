@@ -1,23 +1,63 @@
 'use client';
 
-import { Panel, PanelHeader, PanelContent, CachedBadge } from '@/components/ui/Panel';
+import { useMemo } from 'react';
+import { Panel, PanelHeader, PanelContent, CachedBadge, LiveBadge } from '@/components/ui/Panel';
 import { AFRICAN_MARKETS } from '@/lib/mockData';
+import { useMarketStore } from '@/store/marketStore';
+
+// NGX tickers as stored by our cron job
+const NGX_SYMBOLS = ['GTCO.LG', 'ZENITHBANK.LG', 'ACCESSCORP.LG', 'MTNN.LG', 'DANGCEM.LG', 'UBA.LG'];
 
 export default function AfricanMarketsPanel() {
-  const { ngxAllShare, ngxBanking, usdNgn, topGainers, topLosers } = AFRICAN_MARKETS;
+  const { prices, isRealtimeConnected } = useMarketStore();
+
+  // Pull USD/NGN rate from forex store
+  const usdNgn = useMemo(() => {
+    const live = prices['USDNGN=X'] || prices['USD/NGN'];
+    if (live) return { value: live.price, change: live.change_pct };
+    return AFRICAN_MARKETS.usdNgn;
+  }, [prices]);
+
+  // Pull NGX index if available
+  const ngxAllShare = useMemo(() => {
+    const live = prices['NGX.LG'] || prices['NGXASI'];
+    if (live) return { value: live.price, change: live.change_pct };
+    return AFRICAN_MARKETS.ngxAllShare;
+  }, [prices]);
+
+  // Build live NGX stocks table
+  const ngxStocks = useMemo(() => {
+    const live = NGX_SYMBOLS
+      .map(sym => prices[sym])
+      .filter(Boolean)
+      .map(p => ({
+        symbol: p.symbol.replace('.LG', ''),
+        price: p.price,
+        change: p.change_pct,
+      }))
+      .sort((a, b) => b.change - a.change);
+
+    return live.length > 0 ? live : null;
+  }, [prices]);
+
+  const topGainers = ngxStocks
+    ? ngxStocks.filter(s => s.change >= 0).slice(0, 3)
+    : AFRICAN_MARKETS.topGainers;
+
+  const topLosers = ngxStocks
+    ? ngxStocks.filter(s => s.change < 0).slice(0, 3)
+    : AFRICAN_MARKETS.topLosers;
 
   return (
     <Panel>
       <PanelHeader
         title="African Markets — NGX"
         badge={
+          isRealtimeConnected ? <LiveBadge /> :
           <span
             style={{
-              fontSize: 9,
-              padding: '2px 6px',
-              borderRadius: 10,
-              color: '#44ff88',
-              border: '1px solid rgba(68,255,136,0.4)',
+              fontSize: 9, padding: '2px 6px', borderRadius: 10,
+              color: '#44ff88', border: '1px solid rgba(68,255,136,0.4)',
               background: 'rgba(68,255,136,0.1)',
             }}
           >
@@ -30,7 +70,7 @@ export default function AfricanMarketsPanel() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6, marginBottom: 10 }}>
           {[
             { label: 'NGX ALL-SHARE', value: ngxAllShare.value.toLocaleString(), change: ngxAllShare.change },
-            { label: 'NGX BANKING', value: ngxBanking.value.toFixed(1), change: ngxBanking.change },
+            { label: 'NGX BANKING', value: AFRICAN_MARKETS.ngxBanking.value.toFixed(1), change: AFRICAN_MARKETS.ngxBanking.change },
             { label: 'USD/NGN', value: usdNgn.value.toLocaleString(), change: usdNgn.change },
           ].map(stat => {
             const up = stat.change >= 0;
@@ -101,17 +141,13 @@ export default function AfricanMarketsPanel() {
         {/* Badge */}
         <div
           style={{
-            marginTop: 10,
-            padding: '6px 10px',
+            marginTop: 10, padding: '6px 10px',
             background: 'rgba(68,255,136,0.06)',
             border: '1px solid rgba(68,255,136,0.2)',
-            borderRadius: 2,
-            fontSize: 9,
-            color: 'var(--text-muted)',
-            textAlign: 'center',
+            borderRadius: 2, fontSize: 9, color: 'var(--text-muted)', textAlign: 'center',
           }}
         >
-          🇳🇬 Nigerian Exchange Group · Lagos · WAT (UTC+1) · DATA: NGX API
+          🇳🇬 Nigerian Exchange Group · Lagos · WAT (UTC+1) · {isRealtimeConnected ? 'LIVE' : 'DATA: NGX API'}
         </div>
       </PanelContent>
     </Panel>
