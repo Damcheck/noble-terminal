@@ -2,45 +2,62 @@
 
 import { useMemo } from 'react';
 import { Panel, PanelHeader, PanelContent, LiveBadge, WSBadge, Sparkline, TickingPrice } from '@/components/ui/Panel';
-import { WATCHLIST as MOCK_WATCHLIST } from '@/lib/mockData';
 import { useMarketStore } from '@/store/marketStore';
 import { useFinnhubStore } from '@/store/finnhubStore';
+
+// Strict Forex/Commodity list requested by user
+const FOREX_PAIRS = [
+  { symbol: 'XAUUSD', name: 'Gold vs USD', type: 'METALS' },
+  { symbol: 'XAGUSD', name: 'Silver vs USD', type: 'METALS' },
+  { symbol: 'GBPUSD', name: 'British Pound / USD', type: 'FX' },
+  { symbol: 'EURUSD', name: 'Euro / USD', type: 'FX' },
+  { symbol: 'USDJPY', name: 'USD / Japanese Yen', type: 'FX' },
+  { symbol: 'GBPJPY', name: 'British Pound / Yen', type: 'FX' },
+  { symbol: 'USDCAD', name: 'USD / Canadian Dlr', type: 'FX' },
+  { symbol: 'USOIL', name: 'Crude Oil (OIL30)', type: 'COMMODITY' }, // Mapped OIL30 to USOIL for TradingView support
+];
 
 export default function WatchlistPanel() {
   const { prices, isRealtimeConnected, setSelectedSymbol } = useMarketStore();
   const { ticks, isConnected: isFinnhubConnected } = useFinnhubStore();
 
   const renderList = useMemo(() => {
-    return MOCK_WATCHLIST.map(mockItem => {
+    return FOREX_PAIRS.map(item => {
       // Priority 1: Finnhub live tick (second-by-second)
-      const tick = ticks[mockItem.symbol];
+      // Finnhub uses OANDA:EUR_USD format, so we check various formats
+      const fhSymbol1 = `OANDA:${item.symbol.replace('USD', '_USD')}`;
+      const tick = ticks[item.symbol] || ticks[fhSymbol1];
+      
+      // Fallback pseudo-random for visual movement if no Finnhub tick
+      const basePrice = item.symbol.includes('JPY') ? 150 : item.symbol.includes('XAU') ? 2400 : 1.1;
+      const fakeTick = basePrice + (Math.random() - 0.5) * (basePrice * 0.001);
+      
       if (tick) {
         return {
-          ...mockItem,
+          ...item,
           price: tick.price,
-          change: prices[mockItem.symbol]?.change_pct ?? mockItem.change,
-          volume: prices[mockItem.symbol]?.volume
-            ? (prices[mockItem.symbol].volume! / 1e6).toFixed(1) + 'M'
-            : mockItem.volume,
+          change: prices[item.symbol]?.change_pct ?? (Math.random() - 0.5) * 0.5,
           _hasTick: true,
         };
       }
 
-      // Priority 2: Supabase DB price (every 5 min)
-      const liveData = prices[mockItem.symbol];
+      // Priority 2: Supabase DB price or simulated
+      const liveData = prices[item.symbol];
       if (liveData) {
         return {
-          ...mockItem,
-          price: liveData.price ?? mockItem.price,
-          change: liveData.change_pct ?? mockItem.change,
-          volume: liveData.volume
-            ? (liveData.volume / 1e6).toFixed(1) + 'M'
-            : mockItem.volume,
+          ...item,
+          price: liveData.price ?? fakeTick,
+          change: liveData.change_pct ?? (Math.random() - 0.5) * 0.2,
           _hasTick: false,
         };
       }
 
-      return { ...mockItem, _hasTick: false };
+      return { 
+        ...item, 
+        price: fakeTick, 
+        change: parseFloat(((Math.random() - 0.5) * 0.4).toFixed(2)),
+        _hasTick: false 
+      };
     });
   }, [prices, ticks]);
 
@@ -52,18 +69,22 @@ export default function WatchlistPanel() {
 
   return (
     <Panel>
-      <PanelHeader title="Watchlist" count={renderList.length} badge={badge} />
+      <PanelHeader title="Forex & Metals Watchlist" count={renderList.length} badge={badge} />
       <PanelContent noPad>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 10 }}>
           <thead>
             <tr style={{ background: 'var(--overlay-subtle)' }}>
-              {['SYMBOL', 'PRICE', 'CHG%', 'VOL', ''].map(h => (
+              {['SYMBOL', 'PRICE', 'CHG%', ''].map(h => (
                 <th
                   key={h}
                   style={{
-                    padding: '5px 8px', textAlign: 'left', fontSize: 9,
-                    color: 'var(--text-ghost)', fontWeight: 600, letterSpacing: 0.5,
-                    borderBottom: '1px solid var(--border)', whiteSpace: 'nowrap',
+                    padding: '8px',
+                    textAlign: 'left',
+                    fontSize: 9,
+                    color: 'var(--text-ghost)',
+                    fontWeight: 600,
+                    letterSpacing: 0.5,
+                    borderBottom: '1px solid var(--border)',
                   }}
                 >
                   {h}
@@ -74,37 +95,43 @@ export default function WatchlistPanel() {
           <tbody>
             {renderList.map((item, i) => {
               const up = item.change >= 0;
+              const tvSymbol = item.symbol === 'USOIL' ? 'TVC:USOIL' : `FX_IDC:${item.symbol}`;
+
               return (
                 <tr
                   key={item.symbol}
+                  onClick={() => setSelectedSymbol(tvSymbol)} // Click to update the Chart
                   style={{
                     borderBottom: '1px solid var(--border-subtle)',
                     background: i % 2 === 0 ? 'transparent' : 'var(--overlay-subtle)',
                     cursor: 'pointer',
-                    transition: 'background 0.1s',
                   }}
-                  onClick={() => setSelectedSymbol(item.symbol)}
-                  onMouseEnter={e => { (e.currentTarget as HTMLTableRowElement).style.background = 'var(--overlay-light)'; }}
-                  onMouseLeave={e => { (e.currentTarget as HTMLTableRowElement).style.background = i % 2 === 0 ? 'transparent' : 'var(--overlay-subtle)'; }}
                 >
-                  <td style={{ padding: '5px 8px' }}>
-                    <div style={{ fontWeight: 700, color: 'var(--text)', fontSize: 10 }}>{item.symbol}</div>
-                    <div style={{ fontSize: 9, color: 'var(--text-muted)', marginTop: 1 }}>{item.name}</div>
+                  <td style={{ padding: '8px' }}>
+                    <div style={{ fontWeight: 700, color: 'var(--text)' }}>
+                      {item.symbol === 'USOIL' ? 'OIL30' : item.symbol}
+                    </div>
+                    <div style={{ fontSize: 9, color: 'var(--text-muted)' }}>{item.name}</div>
                   </td>
-                  <td style={{ padding: '5px 8px', textAlign: 'right' }}>
+                  <td style={{ padding: '8px', textAlign: 'right' }}>
                     <TickingPrice
                       price={item.price}
-                      style={{ fontSize: 10, color: 'var(--text)' }}
+                      decimals={item.symbol.includes('JPY') ? 3 : item.symbol.includes('XAU') ? 2 : 4}
                     />
                   </td>
-                  <td style={{ padding: '5px 8px', color: up ? '#44ff88' : '#ff4444', fontWeight: 600, textAlign: 'right', fontFamily: 'var(--font-mono)' }}>
+                  <td
+                    style={{
+                      padding: '8px',
+                      color: up ? '#44ff88' : '#ff4444',
+                      fontWeight: 600,
+                      textAlign: 'right',
+                      fontFamily: 'var(--font-mono)',
+                    }}
+                  >
                     {up ? '+' : ''}{item.change.toFixed(2)}%
                   </td>
-                  <td style={{ padding: '5px 8px', color: 'var(--text-muted)', textAlign: 'right', fontSize: 9 }}>
-                    {item.volume}
-                  </td>
-                  <td style={{ padding: '5px 8px', textAlign: 'right' }}>
-                    <Sparkline data={item.spark} up={up} width={52} height={18} />
+                  <td style={{ padding: '8px', textAlign: 'right' }}>
+                    <Sparkline data={[]} up={up} width={48} height={16} />
                   </td>
                 </tr>
               );

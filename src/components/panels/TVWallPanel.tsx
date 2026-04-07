@@ -1,6 +1,7 @@
 'use client';
 
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
+import { Panel } from '@/components/ui/Panel';
 
 interface Channel {
   id: string;
@@ -11,7 +12,6 @@ interface Channel {
   videoId: string;
 }
 
-// These are the confirmed working live stream IDs
 const CHANNELS: Channel[] = [
   {
     id: 'bloomberg',
@@ -35,15 +35,15 @@ const CHANNELS: Channel[] = [
     flag: '🇬🇧',
     session: 'LONDON · GBP/EUR',
     color: '#00a0e9',
-    videoId: '9Auq9mYxFEE',
+    videoId: 'TvYc8RWJSAg', // new 24/7 official ID
   },
   {
-    id: 'cna',
+    id: 'aljazeera',
     label: 'Al Jazeera',
-    flag: '🇸🇬',
-    session: 'ASIA · GLOBAL',
+    flag: '🇶🇦',
+    session: 'MIDDLE EAST · FX',
     color: '#e63946',
-    videoId: 'nGTQmAbmEAQ',
+    videoId: 'gCNeDWCI0vo', // new 24/7 official ID
   },
   {
     id: 'france24',
@@ -51,24 +51,60 @@ const CHANNELS: Channel[] = [
     flag: '🇫🇷',
     session: 'EUROPE · EUR',
     color: '#2dc6a0',
-    videoId: 'h3MuIUNCRNk',
+    videoId: 'h3MuIUNCRNk', // Standard 24/7 ID
   },
 ];
 
-function TVFrame({ channel, big = false }: { channel: Channel; big?: boolean }) {
+function TVFrame({ channel, big = false, startsMuted = true }: { channel: Channel; big?: boolean; startsMuted?: boolean }) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const [isPlaying, setIsPlaying] = useState(true);
+  const [isMuted, setIsMuted] = useState(startsMuted);
 
-  // YouTube params that hide all branding but keep native controls (play/pause/mute)
+  // Send commands to YouTube's player API via postMessage
+  const postMsg = (func: string) => {
+    if (iframeRef.current && iframeRef.current.contentWindow) {
+      iframeRef.current.contentWindow.postMessage(
+        JSON.stringify({ event: 'command', func, args: [] }),
+        '*'
+      );
+    }
+  };
+
+  const togglePlay = () => {
+    if (isPlaying) postMsg('pauseVideo');
+    else postMsg('playVideo');
+    setIsPlaying(!isPlaying);
+  };
+
+  const toggleMute = () => {
+    if (isMuted) postMsg('unMute');
+    else postMsg('mute');
+    setIsMuted(!isMuted);
+  };
+
+  const goFullscreen = () => {
+    if (containerRef.current) {
+      if (containerRef.current.requestFullscreen) {
+        containerRef.current.requestFullscreen();
+      }
+    }
+  };
+
+  // We set controls=0 so YouTube's UI doesn't show at all.
+  // We use enablejsapi=1 so postMessage works.
   const params = [
     `autoplay=1`,
-    `mute=${big ? 0 : 1}`,   // Bloomberg unmuted, others muted
-    `controls=1`,             // show YouTube's own play/pause/mute — they work perfectly
-    `modestbranding=1`,       // remove YouTube logo from control bar
-    `rel=0`,                  // no related videos
-    `showinfo=0`,             // no title bar at top
-    `iv_load_policy=3`,       // no annotations
+    `mute=${startsMuted ? 1 : 0}`,
+    `controls=0`,          // completely hidden
+    `modestbranding=1`,    // no logo
+    `rel=0`,
+    `showinfo=0`,
+    `disablekb=1`,         // disable keyboard shortcuts when focused
+    `iv_load_policy=3`,
     `playsinline=1`,
-    `loop=1&playlist=${channel.videoId}`, // loop stream
+    `enablejsapi=1`,       // REQUIRED for postMessage
+    `loop=1&playlist=${channel.videoId}`
   ].join('&');
 
   const src = `https://www.youtube-nocookie.com/embed/${channel.videoId}?${params}`;
@@ -84,19 +120,27 @@ function TVFrame({ channel, big = false }: { channel: Channel; big?: boolean }) 
         overflow: 'hidden',
         borderRadius: 4,
         border: `1px solid ${channel.color}40`,
+        // Prevent clicking directly on the iframe (blocks clicking to go to YouTube)
+        // But our custom buttons stay clickable because they sit above this container
       }}
+      className="group" // allows hover effects on controls
     >
-      {/* YouTube iframe — controls=1 gives native play/pause/mute/volume */}
       <iframe
+        ref={iframeRef}
         src={src}
-        style={{ width: '100%', height: '100%', border: 'none', display: 'block' }}
+        style={{ 
+          width: '100%', 
+          height: '100%', 
+          border: 'none', 
+          display: 'block',
+          pointerEvents: 'none' // completely prevents clicking the video and pausing/navigating
+        }}
         allow="autoplay; encrypted-media; fullscreen"
         allowFullScreen
-        referrerPolicy="strict-origin-when-cross-origin"
         title={channel.label}
       />
 
-      {/* Top-left overlay: channel badge (positioned away from YouTube's top-right controls) */}
+      {/* Top-left: Channel Badge */}
       <div
         style={{
           position: 'absolute',
@@ -109,7 +153,7 @@ function TVFrame({ channel, big = false }: { channel: Channel; big?: boolean }) 
           padding: '3px 7px',
           borderRadius: 3,
           backdropFilter: 'blur(4px)',
-          pointerEvents: 'none', // pass-through so YouTube controls below work
+          zIndex: 10,
         }}
       >
         <div style={{
@@ -120,23 +164,60 @@ function TVFrame({ channel, big = false }: { channel: Channel; big?: boolean }) 
         <span style={{ fontSize: big ? 10 : 8, fontWeight: 700, color: '#fff', letterSpacing: 0.5 }}>
           {channel.flag} {channel.label}
         </span>
-        <span style={{ fontSize: big ? 8 : 7, color: channel.color, fontWeight: 600 }}>
-          ◉ {channel.session}
-        </span>
       </div>
 
-      {/* Top-right corner: dark box to cover YouTube watermark logo */}
+      {/* Custom Control Bar overlay - appears on hover */}
       <div
+        className="opacity-0 group-hover:opacity-100 transition-opacity duration-300"
         style={{
           position: 'absolute',
-          top: 0,
+          bottom: 0,
+          left: 0,
           right: 0,
-          width: 80,
-          height: 36,
-          background: 'rgba(0,0,0,0.0)',
-          pointerEvents: 'none',
+          height: 32,
+          background: 'linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0) 100%)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '0 8px',
+          zIndex: 20,
         }}
-      />
+      >
+        {/* Play/Pause */}
+        <button 
+          onClick={togglePlay}
+          style={{ 
+            background: 'none', border: 'none', color: '#fff', 
+            cursor: 'pointer', fontSize: 14, padding: 4 
+          }}
+        >
+          {isPlaying ? '⏸' : '▶'}
+        </button>
+
+        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+          {/* Mute/Unmute */}
+          <button 
+            onClick={toggleMute}
+            style={{ 
+              background: 'none', border: 'none', color: '#fff', 
+              cursor: 'pointer', fontSize: 13, padding: 4 
+            }}
+          >
+            {isMuted ? '🔇' : '🔊'}
+          </button>
+          
+          {/* Fullscreen */}
+          <button 
+            onClick={goFullscreen}
+            style={{ 
+              background: 'none', border: 'none', color: '#fff', 
+              cursor: 'pointer', fontSize: 13, padding: 4 
+            }}
+          >
+            ⛶
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -150,12 +231,12 @@ export default function TVWallPanel() {
       display: 'flex', gap: 4, padding: 4,
       background: '#060608', boxSizing: 'border-box', overflow: 'hidden',
     }}>
-      {/* Bloomberg — big (62%) */}
+      {/* Bloomberg — big (62%), starts UNMUTED */}
       <div style={{ flex: '0 0 62%', height: '100%' }}>
-        <TVFrame channel={bloomberg} big />
+        <TVFrame channel={bloomberg} big startsMuted={false} />
       </div>
 
-      {/* 4 small — 2×2 grid */}
+      {/* 4 small — 2×2 grid, all start MUTED */}
       <div style={{
         flex: 1,
         display: 'grid',
@@ -164,7 +245,7 @@ export default function TVWallPanel() {
         gap: 4,
       }}>
         {smallChannels.map(ch => (
-          <TVFrame key={ch.id} channel={ch} />
+          <TVFrame key={ch.id} channel={ch} startsMuted={true} />
         ))}
       </div>
     </div>
