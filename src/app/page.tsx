@@ -31,39 +31,40 @@ import DarkPoolPanel from '@/components/panels/DarkPoolPanel';
 import InsiderTradingPanel from '@/components/panels/InsiderTradingPanel';
 import CDSPanel from '@/components/panels/CDSPanel';
 import SupplyChainPanel from '@/components/panels/SupplyChainPanel';
-import BloombergTVPanel from '@/components/panels/BloombergTVPanel';
+import TVWallPanel from '@/components/panels/TVWallPanel';
 
-// Chart must be dynamic (uses browser APIs)
+// Chart and TVWall must be dynamic (use browser APIs)
 const ChartPanel = dynamic(() => import('@/components/panels/ChartPanel'), { ssr: false });
+const TVWall = dynamic(() => import('@/components/panels/TVWallPanel'), { ssr: false });
 
 // Default layout — 12-col grid, rowHeight=32
 const DEFAULT_LAYOUTS = {
   lg: [
-    { i: 'chart',       x: 0, y: 0,  w: 6, h: 10, minW: 4, minH: 7 },
-    { i: 'heatmap',     x: 6, y: 0,  w: 6, h: 10, minW: 4, minH: 6 },
-    { i: 'watchlist',   x: 0, y: 10, w: 3, h: 9,  minW: 2, minH: 6 },
-    { i: 'forex',       x: 3, y: 10, w: 3, h: 9,  minW: 2, minH: 6 },
-    { i: 'crypto',      x: 6, y: 10, w: 3, h: 9,  minW: 2, minH: 6 },
-    { i: 'orderbook',   x: 9, y: 10, w: 3, h: 9,  minW: 2, minH: 6 },
-    { i: 'news',        x: 0, y: 19, w: 6, h: 10, minW: 3, minH: 6 },
-    { i: 'econcal',     x: 6, y: 19, w: 3, h: 10, minW: 2, minH: 6 },
-    { i: 'risk',        x: 9, y: 19, w: 3, h: 10, minW: 2, minH: 8 },
-    { i: 'sector',      x: 0, y: 29, w: 3, h: 9,  minW: 2, minH: 6 },
-    { i: 'macro',       x: 3, y: 29, w: 3, h: 9,  minW: 2, minH: 6 },
-    { i: 'commodities', x: 6, y: 29, w: 3, h: 9,  minW: 2, minH: 6 },
-    { i: 'africa',      x: 9, y: 29, w: 3, h: 9,  minW: 2, minH: 6 },
-    { i: 'yield',       x: 0, y: 38, w: 4, h: 9,  minW: 3, minH: 7 },
-    { i: 'darkpool',    x: 4, y: 38, w: 4, h: 9,  minW: 3, minH: 6 },
-    { i: 'capitol',     x: 8, y: 38, w: 4, h: 9,  minW: 3, minH: 6 },
-    { i: 'cds',         x: 0, y: 47, w: 4, h: 9,  minW: 3, minH: 6 },
-    { i: 'splc',        x: 4, y: 47, w: 6, h: 9,  minW: 4, minH: 8 },
-    { i: 'bloomberg',   x: 0, y: 56, w: 6, h: 12, minW: 4, minH: 8 },
+    { i: 'chart',       x: 0, y: 0,  w: 5, h: 13, minW: 4, minH: 8 },
+    { i: 'tvwall',      x: 5, y: 0,  w: 7, h: 13, minW: 5, minH: 8 },
+    { i: 'watchlist',   x: 0, y: 13, w: 3, h: 9,  minW: 2, minH: 6 },
+    { i: 'forex',       x: 3, y: 13, w: 3, h: 9,  minW: 2, minH: 6 },
+    { i: 'crypto',      x: 6, y: 13, w: 3, h: 9,  minW: 2, minH: 6 },
+    { i: 'orderbook',   x: 9, y: 13, w: 3, h: 9,  minW: 2, minH: 6 },
+    { i: 'news',        x: 0, y: 22, w: 6, h: 10, minW: 3, minH: 6 },
+    { i: 'econcal',     x: 6, y: 22, w: 3, h: 10, minW: 2, minH: 6 },
+    { i: 'risk',        x: 9, y: 22, w: 3, h: 10, minW: 2, minH: 8 },
+    { i: 'sector',      x: 0, y: 32, w: 3, h: 9,  minW: 2, minH: 6 },
+    { i: 'macro',       x: 3, y: 32, w: 3, h: 9,  minW: 2, minH: 6 },
+    { i: 'commodities', x: 6, y: 32, w: 3, h: 9,  minW: 2, minH: 6 },
+    { i: 'africa',      x: 9, y: 32, w: 3, h: 9,  minW: 2, minH: 6 },
+    { i: 'heatmap',     x: 0, y: 41, w: 6, h: 9,  minW: 4, minH: 6 },
+    { i: 'yield',       x: 6, y: 41, w: 6, h: 9,  minW: 3, minH: 7 },
+    { i: 'darkpool',    x: 0, y: 50, w: 4, h: 9,  minW: 3, minH: 6 },
+    { i: 'capitol',     x: 4, y: 50, w: 4, h: 9,  minW: 3, minH: 6 },
+    { i: 'cds',         x: 8, y: 50, w: 4, h: 9,  minW: 3, minH: 6 },
+    { i: 'splc',        x: 0, y: 59, w: 6, h: 9,  minW: 4, minH: 8 },
   ],
 };
 
 const PANELS = [
   { id: 'chart',       label: 'Chart',           Component: ChartPanel },
-  { id: 'heatmap',     label: 'Heat Map',        Component: HeatMapPanel },
+  { id: 'tvwall',      label: 'TV Wall',         Component: TVWall },
   { id: 'watchlist',   label: 'Watchlist',       Component: WatchlistPanel },
   { id: 'forex',       label: 'Forex',           Component: ForexPanel },
   { id: 'crypto',      label: 'Crypto',          Component: CryptoPanel },
@@ -75,12 +76,12 @@ const PANELS = [
   { id: 'macro',       label: 'Macro',           Component: MacroPanel },
   { id: 'commodities', label: 'Commodities',     Component: CommoditiesPanel },
   { id: 'africa',      label: 'NGX',             Component: AfricanMarketsPanel },
+  { id: 'heatmap',     label: 'Heat Map',        Component: HeatMapPanel },
   { id: 'yield',       label: 'Yield Curve',     Component: YieldCurvePanel },
   { id: 'darkpool',    label: 'Dark Pool',       Component: DarkPoolPanel },
   { id: 'capitol',     label: 'Capitol Hill',    Component: InsiderTradingPanel },
   { id: 'cds',         label: 'CDS Spreads',     Component: CDSPanel },
   { id: 'splc',        label: 'Supply Chain',    Component: SupplyChainPanel },
-  { id: 'bloomberg',   label: 'Bloomberg TV',    Component: BloombergTVPanel },
 ] as const;
 
 export default function TerminalPage() {
