@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Outfit, Fira_Code } from "next/font/google";
 import SecurityWrapper from "@/components/layout/SecurityWrapper";
+import CommandPalette from "@/components/layout/CommandPalette";
 import "./globals.css";
 
 const outfit = Outfit({
@@ -51,6 +52,7 @@ export default function RootLayout({
     >
       <body className="terminal-root" suppressHydrationWarning>
         <SecurityWrapper>
+          <CommandPalette />
           {children}
         </SecurityWrapper>
       </body>
