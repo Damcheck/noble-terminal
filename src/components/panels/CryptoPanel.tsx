@@ -17,7 +17,7 @@ function getFearColor(v: number) {
 }
 
 export default function CryptoPanel() {
-  const { prices, isRealtimeConnected, initializeRealtime } = useMarketStore();
+  const { prices, isRealtimeConnected, initializeRealtime, setSelectedSymbol } = useMarketStore();
   const { ticks, isConnected: isFinnhubConnected } = useFinnhubStore();
 
   useEffect(() => {
@@ -136,6 +136,7 @@ export default function CryptoPanel() {
                     cursor: 'pointer',
                     transition: 'background 0.1s',
                   }}
+                  onClick={() => setSelectedSymbol(c.symbol)}
                   onMouseEnter={e => { (e.currentTarget as HTMLTableRowElement).style.background = 'var(--overlay-light)'; }}
                   onMouseLeave={e => { (e.currentTarget as HTMLTableRowElement).style.background = i % 2 === 0 ? 'transparent' : 'var(--overlay-subtle)'; }}
                 >

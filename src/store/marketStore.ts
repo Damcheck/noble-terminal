@@ -22,6 +22,8 @@ export interface MarketPrice {
 interface MarketState {
   prices: Record<string, MarketPrice>;
   isRealtimeConnected: boolean;
+  selectedSymbol: string;
+  setSelectedSymbol: (symbol: string) => void;
   initializeRealtime: () => void;
   setInitialPrices: (prices: MarketPrice[]) => void;
   updatePrice: (priceData: MarketPrice) => void;
@@ -30,6 +32,11 @@ interface MarketState {
 export const useMarketStore = create<MarketState>((set, get) => ({
   prices: {},
   isRealtimeConnected: false,
+  selectedSymbol: 'XAUUSD', // Default to Gold
+
+  setSelectedSymbol: (symbol: string) => {
+    set({ selectedSymbol: symbol });
+  },
 
   setInitialPrices: (markets: MarketPrice[]) => {
     const newPrices = { ...get().prices };

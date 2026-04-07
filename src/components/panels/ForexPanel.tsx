@@ -7,7 +7,7 @@ import { useMarketStore } from '@/store/marketStore';
 import { useFinnhubStore } from '@/store/finnhubStore';
 
 export default function ForexPanel() {
-  const { prices, isRealtimeConnected } = useMarketStore();
+  const { prices, isRealtimeConnected, setSelectedSymbol } = useMarketStore();
   const { ticks, isConnected: isFinnhubConnected } = useFinnhubStore();
 
   // Merge Realtime Data into Mock data array for layout stability
@@ -83,6 +83,7 @@ export default function ForexPanel() {
                     cursor: 'pointer',
                     transition: 'background 0.1s',
                   }}
+                  onClick={() => setSelectedSymbol(item.pair)}
                   onMouseEnter={e => {
                     (e.currentTarget as HTMLTableRowElement).style.background = item.highlight
                       ? 'rgba(255,170,0,0.12)'

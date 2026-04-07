@@ -7,7 +7,7 @@ import { useMarketStore } from '@/store/marketStore';
 import { useFinnhubStore } from '@/store/finnhubStore';
 
 export default function WatchlistPanel() {
-  const { prices, isRealtimeConnected } = useMarketStore();
+  const { prices, isRealtimeConnected, setSelectedSymbol } = useMarketStore();
   const { ticks, isConnected: isFinnhubConnected } = useFinnhubStore();
 
   const renderList = useMemo(() => {
@@ -83,6 +83,7 @@ export default function WatchlistPanel() {
                     cursor: 'pointer',
                     transition: 'background 0.1s',
                   }}
+                  onClick={() => setSelectedSymbol(item.symbol)}
                   onMouseEnter={e => { (e.currentTarget as HTMLTableRowElement).style.background = 'var(--overlay-light)'; }}
                   onMouseLeave={e => { (e.currentTarget as HTMLTableRowElement).style.background = i % 2 === 0 ? 'transparent' : 'var(--overlay-subtle)'; }}
                 >

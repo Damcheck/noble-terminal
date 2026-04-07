@@ -46,6 +46,19 @@ interface FinnhubState {
   _ws: WebSocket | null;
 }
 
+let _reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+let _reconnectDelay = 3000; // start at 3s, grows with backoff
+let _pingInterval: ReturnType<typeof setInterval> | null = null;
+
+function scheduleReconnect(connectFn: () => void) {
+  if (_reconnectTimer) clearTimeout(_reconnectTimer);
+  _reconnectTimer = setTimeout(() => {
+    _reconnectTimer = null;
+    _reconnectDelay = Math.min(_reconnectDelay * 1.5, 30000); // cap at 30s backoff
+    connectFn();
+  }, _reconnectDelay);
+}
+
 export const useFinnhubStore = create<FinnhubState>((set, get) => ({
   ticks: {},
   isConnected: false,
@@ -63,15 +76,25 @@ export const useFinnhubStore = create<FinnhubState>((set, get) => ({
     }
 
     const ws = new WebSocket(`wss://ws.finnhub.io?token=${token}`);
+    set({ _ws: ws });
 
     ws.onopen = () => {
       console.log('[Finnhub] WebSocket connected ✅');
+      _reconnectDelay = 3000; // reset backoff on successful connect
       set({ isConnected: true });
 
       // Subscribe to all symbols
       Object.keys(FINNHUB_SYMBOLS).forEach(symbol => {
         ws.send(JSON.stringify({ type: 'subscribe', symbol }));
       });
+
+      // Heartbeat: send a ping every 25s to prevent idle disconnection
+      if (_pingInterval) clearInterval(_pingInterval);
+      _pingInterval = setInterval(() => {
+        if (ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({ type: 'ping' }));
+        }
+      }, 25000);
     };
 
     ws.onmessage = (event) => {
@@ -106,15 +129,11 @@ export const useFinnhubStore = create<FinnhubState>((set, get) => ({
     };
 
     ws.onclose = () => {
-      console.log('[Finnhub] WebSocket closed — reconnecting in 5s...');
+      console.log(`[Finnhub] Disconnected — reconnecting in ${_reconnectDelay / 1000}s...`);
+      if (_pingInterval) { clearInterval(_pingInterval); _pingInterval = null; }
       set({ isConnected: false, _ws: null });
-      // Auto-reconnect after 5 seconds
-      setTimeout(() => {
-        if (!get().isConnected) get().connect();
-      }, 5000);
+      scheduleReconnect(() => get().connect());
     };
-
-    set({ _ws: ws });
   },
 
   disconnect: () => {

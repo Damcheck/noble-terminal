@@ -4,6 +4,7 @@ import { useMemo } from 'react';
 import { Panel, PanelHeader, PanelContent, LiveBadge } from '@/components/ui/Panel';
 import { ORDER_BOOK } from '@/lib/mockData';
 import { useMarketStore } from '@/store/marketStore';
+import { useFinnhubStore } from '@/store/finnhubStore';
 
 // Generate simulated order-book levels around a mid price
 function generateLevels(mid: number, count: number, side: 'ask' | 'bid') {
@@ -21,13 +22,14 @@ function generateLevels(mid: number, count: number, side: 'ask' | 'bid') {
 }
 
 export default function OrderBookPanel() {
-  const { prices, isRealtimeConnected } = useMarketStore();
+  const { prices, isRealtimeConnected, selectedSymbol } = useMarketStore();
+  const { ticks } = useFinnhubStore();
 
-  // Try BTC-USD first, then XAU/USD from store; fall back to mock
+  // Use the globally selected symbol for the order book
   const livePrice =
-    prices['BTC-USD']?.price ||
-    prices['XAU/USD']?.bid ||
-    prices['GC=F']?.price;
+    ticks[selectedSymbol]?.price ||
+    prices[selectedSymbol]?.price ||
+    prices[selectedSymbol]?.bid;
 
   const book = useMemo(() => {
     if (!livePrice) return ORDER_BOOK;
@@ -43,9 +45,7 @@ export default function OrderBookPanel() {
     ...book.bids.map(b => b.total)
   );
 
-  const label = livePrice
-    ? prices['BTC-USD'] ? 'BTC/USD' : 'XAU/USD'
-    : 'XAU/USD';
+  const label = selectedSymbol || 'XAU/USD';
 
   return (
     <Panel>

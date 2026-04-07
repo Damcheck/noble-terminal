@@ -98,6 +98,19 @@ export default function TerminalPage() {
     initEcon();
     initYield();
     connectFinnhub(); // 🔴 Live WebSocket — ticking prices
+
+    // Reconnect Finnhub when user switches back to the tab
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        const { isConnected, connect } = useFinnhubStore.getState();
+        if (!isConnected) {
+          console.log('[Finnhub] Tab became visible — reconnecting...');
+          connect();
+        }
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', onVisibilityChange);
   }, [initMarket, initMacro, initNews, initEcon, initYield, connectFinnhub]);
 
   const toggle = (id: string) =>
