@@ -69,7 +69,8 @@ export default function RiskPanel() {
 
   // BTC price via Finnhub WebSocket (key: BTC-USD from BINANCE:BTCUSDT mapping)
   const btcPrice = ticks['BTC-USD']?.price ?? prices['BTC-USD']?.price ?? null;
-  const vix = vixPrice;
+  // Fallback map: Live Finnhub -> Vercel Cron -> Null
+  const vix = vixPrice ?? prices['^VIX']?.price ?? null;
   const fearVal = fearGreed?.value ?? 50;
 
   // Derive risk levels from live data

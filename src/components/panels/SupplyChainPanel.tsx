@@ -69,8 +69,9 @@ export default function SupplyChainPanel() {
   // Recalculate stress — dynamically rescales based on real macro inputs
   useEffect(() => {
     const update = () => {
-      // Cast to numbers and fallback securely
-      const v = Number(vix) || 15;
+      // Cast to numbers and fallback securely (using Supabase VIX as fallback to REST)
+      const cachedVix = prices['^VIX']?.price;
+      const v = Number(vix) || Number(cachedVix) || 15;
       const o = Number(oilPrice) || 75;
       const g = Number(goldPrice) || 2000;
 
