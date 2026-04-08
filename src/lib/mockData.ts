@@ -226,32 +226,8 @@ export const ORDER_BOOK = {
   ],
 };
 
-// Generate mock OHLCV candle data
-function generateCandles(basePrice: number, count: number) {
-  const candles = [];
-  let price = basePrice;
-  const now = Date.now();
-  for (let i = count; i >= 0; i--) {
-    const open = price;
-    const change = (Math.random() - 0.48) * price * 0.008;
-    const close = price + change;
-    const high = Math.max(open, close) + Math.random() * price * 0.003;
-    const low = Math.min(open, close) - Math.random() * price * 0.003;
-    const volume = Math.floor(Math.random() * 5000 + 1000);
-    candles.push({
-      time: Math.floor((now - i * 60000) / 1000),
-      open: parseFloat(open.toFixed(2)),
-      high: parseFloat(high.toFixed(2)),
-      low: parseFloat(low.toFixed(2)),
-      close: parseFloat(close.toFixed(2)),
-      volume,
-    });
-    price = close;
-  }
-  return candles;
-}
-
-export const CHART_CANDLES = generateCandles(2950, 200);
+// CHART_CANDLES intentionally removed — ChartPanel uses TradingView AdvancedRealTimeChart
+// which streams its own live OHLCV data directly. No fabricated candle data is rendered.
 
 export const MARKET_STATUS = [
   { name: 'NYSE', status: 'OPEN', color: '#44ff88' },

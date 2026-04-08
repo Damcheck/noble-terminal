@@ -73,13 +73,17 @@ export default function CurrencyStrengthPanel() {
 
   const strengthBars = useMemo(() => {
     const scoreVals = Object.values(liveScores);
-    if (!isReady || scoreVals.length === 0 || Math.max(...scoreVals) === 0) {
+    
+    // Check if all scores are genuinely zero (not just summing to zero as a group)
+    const allZero = scoreVals.length === 0 || scoreVals.every(v => v === 0);
+    
+    if (!isReady || allZero) {
       return CURRENCIES.map(c => ({ currency: c, score: 50 })).sort((a, b) => b.score - a.score);
     }
 
     const minScore = Math.min(...scoreVals);
     const maxScore = Math.max(...scoreVals);
-    const range = maxScore - minScore === 0 ? 1 : maxScore - minScore;
+    const range = maxScore - minScore === 0 ? 0.001 : maxScore - minScore; // avoid flat line
 
     const computed = CURRENCIES.map(c => {
       const normalized = (liveScores[c] - minScore) / range; // 0 to 1
