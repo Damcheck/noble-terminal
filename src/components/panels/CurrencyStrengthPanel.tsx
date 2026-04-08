@@ -3,6 +3,7 @@
 import { useMemo, useEffect, useState } from 'react';
 import { Panel, PanelHeader, PanelContent, LiveBadge } from '@/components/ui/Panel';
 import { useMarketStore } from '@/store/marketStore';
+import { useFinnhubStore } from '@/store/finnhubStore';
 
 const FLAGS: Record<string, string> = {
   AUD: '🇦🇺', CAD: '🇨🇦', CHF: '🇨🇭', EUR: '🇪🇺', 
@@ -10,64 +11,90 @@ const FLAGS: Record<string, string> = {
 };
 const CURRENCIES = Object.keys(FLAGS);
 
+// Map internal Finnhub symbol to base/quote and the Yahoo history string
 const FOREX_PAIRS = {
-  'EURUSD=X': { base: 'EUR', quote: 'USD' },
-  'GBPUSD=X': { base: 'GBP', quote: 'USD' },
-  'AUDUSD=X': { base: 'AUD', quote: 'USD' },
-  'NZDUSD=X': { base: 'NZD', quote: 'USD' },
-  'USDJPY=X': { base: 'USD', quote: 'JPY' },
-  'USDCAD=X': { base: 'USD', quote: 'CAD' },
-  'USDCHF=X': { base: 'USD', quote: 'CHF' }
+  'EURUSD': { base: 'EUR', quote: 'USD', staticKey: 'EURUSD=X' },
+  'GBPUSD': { base: 'GBP', quote: 'USD', staticKey: 'GBPUSD=X' },
+  'AUDUSD': { base: 'AUD', quote: 'USD', staticKey: 'AUDUSD=X' },
+  'NZDUSD': { base: 'NZD', quote: 'USD', staticKey: 'NZDUSD=X' },
+  'USDJPY': { base: 'USD', quote: 'JPY', staticKey: 'USDJPY=X' },
+  'USDCAD': { base: 'USD', quote: 'CAD', staticKey: 'USDCAD=X' },
+  'USDCHF': { base: 'USD', quote: 'CHF', staticKey: 'USDCHF=X' }
 };
 
 export default function CurrencyStrengthPanel() {
-  const { prices } = useMarketStore();
   const [isReady, setIsReady] = useState(false);
+  const [liveScores, setLiveScores] = useState<Record<string, number>>({});
 
   useEffect(() => {
-    const t = setTimeout(() => setIsReady(true), 150);
-    return () => clearTimeout(t);
+    // 500ms startup delay to ensure both web sockets and database have mounted
+    const t = setTimeout(() => setIsReady(true), 500);
+
+    // Ultra-fast 10hz rendering loop detached from react state cycle
+    const interval = setInterval(() => {
+      const { prices: staticPrices } = useMarketStore.getState();
+      const { ticks: liveTicks } = useFinnhubStore.getState();
+      
+      let scores: Record<string, number> = {};
+      CURRENCIES.forEach(c => scores[c] = 0);
+
+      Object.entries(FOREX_PAIRS).forEach(([finnhubKey, config]) => {
+        const staticData = staticPrices[config.staticKey];
+        const tickData = liveTicks[finnhubKey];
+
+        // We calculate real-time percentage shift combining DB history + Live stream.
+        let liveMomentum = 0;
+
+        if (staticData && typeof staticData.change_pct === 'number') {
+          // If we have live Finnhub stream data
+          if (tickData && tickData.price) {
+            const prevClose = staticData.price / (1 + (staticData.change_pct / 100)); // Reverse engineer exact previous close
+            const trueLivePct = ((tickData.price - prevClose) / prevClose) * 100;
+            // Scale deeply for high visual volatility
+            liveMomentum = trueLivePct * 5; 
+          } else {
+             // Fallback to static percentage if Finnhub is dead (e.g. weekends)
+            liveMomentum = staticData.change_pct * 5;
+          }
+          
+          scores[config.base] += liveMomentum;
+          scores[config.quote] -= liveMomentum;
+        }
+      });
+
+      setLiveScores({...scores});
+    }, 200); // Renders 5 frames per second
+
+    return () => {
+      clearTimeout(t);
+      clearInterval(interval);
+    };
   }, []);
 
   const strengthBars = useMemo(() => {
-    let scores: Record<string, number> = {};
-    CURRENCIES.forEach(c => scores[c] = 0);
-
-    let hasData = false;
-    Object.entries(FOREX_PAIRS).forEach(([symbol, config]) => {
-      const data = prices[symbol];
-      if (data && typeof data.change_pct === 'number') {
-        const momentum = data.change_pct; 
-        scores[config.base] += momentum;
-        scores[config.quote] -= momentum;
-        hasData = true;
-      }
-    });
-
-    if (!hasData) {
+    const scoreVals = Object.values(liveScores);
+    if (!isReady || scoreVals.length === 0 || Math.max(...scoreVals) === 0) {
       return CURRENCIES.map(c => ({ currency: c, score: 50 })).sort((a, b) => b.score - a.score);
     }
 
-    const scoreVals = Object.values(scores);
     const minScore = Math.min(...scoreVals);
     const maxScore = Math.max(...scoreVals);
     const range = maxScore - minScore === 0 ? 1 : maxScore - minScore;
 
     const computed = CURRENCIES.map(c => {
-      const normalized = (scores[c] - minScore) / range; // 0 to 1
+      const normalized = (liveScores[c] - minScore) / range; // 0 to 1
       const integerScore = Math.round(normalized * 100);
       return { currency: c, score: integerScore };
     });
 
     // Sort descending so strongest is on the left
     return computed.sort((a, b) => b.score - a.score);
-  }, [prices]);
+  }, [liveScores, isReady]);
 
   return (
     <Panel>
       <PanelHeader title="Currency Strength Meter" badge={<LiveBadge />} />
       <PanelContent>
-        {/* Sleek aesthetic wrapper */}
         <div style={{
           position: 'relative', height: '100%', width: '100%', 
           padding: '16px 8px 8px 8px', display: 'flex', gap: '8px',
@@ -75,24 +102,21 @@ export default function CurrencyStrengthPanel() {
         }}>
           {!isReady && (
             <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-ghost)', fontSize: 11 }}>
-              Initializing Algorithm...
+              Tuning Live WebSockets...
             </div>
           )}
           
-          {isReady && strengthBars.map((item, idx) => {
-            // Determine active bar color — High = neon green, Low = neon red
+          {isReady && strengthBars.map((item) => {
             const isStrong = item.score >= 50;
             const barColor = isStrong ? '#44ff88' : '#ff3344';
             const shadowColor = isStrong ? 'rgba(68,255,136,0.5)' : 'rgba(255,51,68,0.5)';
-            // The bar physically shrinks downwards from 100% to 5% min-height
-            const heightPct = Math.max(item.score, 3); // Minimum 3% visual bump even if 0 score
+            const heightPct = Math.max(item.score, 3);
 
             return (
               <div key={item.currency} style={{ 
                 flex: 1, display: 'flex', flexDirection: 'column', 
-                alignItems: 'center', transition: 'all 0.6s cubic-bezier(0.2, 0.8, 0.2, 1)' 
+                alignItems: 'center', transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)' 
               }}>
-                {/* Floating Numeric Pill */}
                 <div style={{
                   marginBottom: 8,
                   fontSize: 8,
@@ -105,12 +129,11 @@ export default function CurrencyStrengthPanel() {
                   boxShadow: `0 2px 10px ${shadowColor}`,
                   border: `1px solid ${shadowColor}`,
                   opacity: 0.9,
-                  transition: 'all 0.6s ease'
+                  transition: 'all 0.3s ease'
                 }}>
                   {item.score}
                 </div>
 
-                {/* The Solid Glowing Bar */}
                 <div style={{
                   width: '18px',
                   height: '110px', 
@@ -125,11 +148,10 @@ export default function CurrencyStrengthPanel() {
                     background: `linear-gradient(to top, ${barColor}99, ${barColor})`,
                     borderRadius: 10,
                     boxShadow: `0 0 10px ${shadowColor}`,
-                    transition: 'height 0.6s cubic-bezier(0.2, 0.8, 0.2, 1)'
+                    transition: 'height 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
                   }} />
                 </div>
 
-                {/* Glassmorphic Country/Currency Base Card */}
                 <div style={{
                   background: 'rgba(255, 255, 255, 0.05)',
                   border: '1px solid rgba(255, 255, 255, 0.1)',
