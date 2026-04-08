@@ -149,8 +149,19 @@ export default function TerminalPage() {
   const visiblePanels = PANELS.filter(p => !hidden.has(p.id));
   const { width, containerRef, mounted } = useContainerWidth();
 
+  const isMobile = width < 768;
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: 'var(--bg)', overflow: 'hidden' }}>
+    <div 
+      style={{ 
+        display: 'flex', 
+        flexDirection: 'column', 
+        height: isMobile ? 'auto' : '100vh', 
+        minHeight: '100vh',
+        background: 'var(--bg)', 
+        overflow: isMobile ? 'visible' : 'hidden' 
+      }}
+    >
       <TerminalHeader />
 
       {/* Panel Toggle Bar */}
@@ -196,7 +207,7 @@ export default function TerminalPage() {
       </div>
 
       {/* Main grid area */}
-      <main ref={containerRef} style={{ flex: 1, overflow: 'auto', padding: 4 }}>
+      <main ref={containerRef} style={{ flex: 1, overflow: isMobile ? 'visible' : 'auto', padding: 4 }}>
         {mounted && (
           <ResponsiveGridLayout
             width={width}

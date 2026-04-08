@@ -77,6 +77,41 @@
   --font-mono: 'Fira Code', 'SF Mono', 'Monaco', 'Cascadia Code', monospace;
 }
 
+.light {
+  --bg: #f8f9fa;
+  --bg-secondary: #ffffff;
+  --surface: #ffffff;
+  --surface-hover: #f1f3f5;
+  --surface-active: #e9ecef;
+  --border: #e5e7eb;
+  --border-strong: #d1d5db;
+  --border-subtle: #f3f4f6;
+  --text: #111827;
+  --text-secondary: #374151;
+  --text-dim: #6b7280;
+  --text-muted: #9ca3af;
+  --text-faint: #d1d5db;
+  --text-ghost: #e5e7eb;
+  --accent: #000000;
+  --overlay-subtle: rgba(0,0,0,0.03);
+  --overlay-light: rgba(0,0,0,0.05);
+  --overlay-medium: rgba(0,0,0,0.1);
+  --overlay-heavy: rgba(0,0,0,0.2);
+  --panel-bg: #ffffff;
+  --panel-border: #e5e7eb;
+  --semantic-critical: #dc2626;
+  --semantic-high: #ea580c;
+  --semantic-elevated: #d97706;
+  --semantic-normal: #16a34a;
+  --semantic-low: #2563eb;
+  --semantic-info: #3b82f6;
+  --semantic-positive: #22c55e;
+  --red: #dc2626;
+  --green: #22c55e;
+  --yellow: #d97706;
+  --status-live: #22c55e;
+}
+
 body {
   background-color: var(--bg);
   color: var(--text-secondary);

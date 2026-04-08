@@ -165,9 +165,9 @@ function TVFrame({ channel, big = false, startsMuted = true }: { channel: Channe
         </span>
       </div>
 
-      {/* Custom Control Bar overlay - appears on hover */}
+      {/* Custom Control Bar overlay - always visible on mobile, hover on desktop */}
       <div
-        className="opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+        className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-300"
         style={{
           position: 'absolute',
           bottom: 0,

@@ -5,6 +5,7 @@ import { TICKER_ITEMS, MARKET_STATUS } from '@/lib/mockData';
 import { useMarketStore } from '@/store/marketStore';
 import { useNewsStore } from '@/store/newsStore';
 import { useFinnhubStore } from '@/store/finnhubStore';
+import { useThemeStore } from '@/store/themeStore';
 
 // Maps ticker tape labels to Supabase store keys and Finnhub tick keys
 const TICKER_SYMBOL_MAP: Record<string, { storeKey: string; finnhubKey: string }> = {
@@ -32,6 +33,7 @@ export default function TerminalHeader() {
   const { prices } = useMarketStore();
   const { ticks } = useFinnhubStore(); // real-time ticks — higher priority
   const { articles } = useNewsStore();
+  const { theme, toggleTheme } = useThemeStore();
 
   // Squawk: speak new headlines as they arrive
   useEffect(() => {
@@ -49,12 +51,16 @@ export default function TerminalHeader() {
   useEffect(() => {
     const tick = () => {
       const now = new Date();
-      setTime(now.toUTCString().split(' ')[4] + ' UTC');
-      setDate(now.toLocaleDateString('en-GB', { weekday: 'short', day: '2-digit', month: 'short' }).toUpperCase());
+      setTime(now.toISOString().substring(11, 19)); // HH:MM:SS
+      setDate(now.toUTCString().substring(0, 11).toUpperCase()); // WED, 05 APR
     };
     tick();
-    const id = setInterval(tick, 1000);
-    return () => clearInterval(id);
+    const iv = setInterval(tick, 1000);
+    
+    // Boot up theme on client-side render
+    useThemeStore.getState().initializeTheme();
+    
+    return () => clearInterval(iv);
   }, []);
 
   // Merge live prices: Finnhub tick (real-time) > Supabase price (5min) > mock
@@ -167,6 +173,22 @@ export default function TerminalHeader() {
           >
             {time}
           </span>
+          {/* Theme Toggle */}
+          <button
+            onClick={toggleTheme}
+            title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+            style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              width: 24, height: 24, borderRadius: 3, cursor: 'pointer',
+              border: '1px solid var(--border)',
+              background: 'var(--overlay-subtle)',
+              color: 'var(--text-muted)',
+              transition: 'all 0.2s',
+            }}
+          >
+            {theme === 'dark' ? '☀️' : '🌙'}
+          </button>
+
           {/* Squawk Box Toggle */}
           <button
             onClick={() => {
