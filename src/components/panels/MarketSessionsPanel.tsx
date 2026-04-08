@@ -67,97 +67,105 @@ export default function MarketSessionsPanel() {
   return (
     <Panel>
       <PanelHeader title="Global Market Sessions" badge={<LiveBadge />} />
-      <PanelContent>
+      <PanelContent style={{ padding: '8px 12px' }}>
         {/* The 24-hour visualization bar */}
         <div style={{ marginBottom: 12 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 7, color: 'var(--text-ghost)', marginBottom: 2 }}>
-            <span>00:00 UTC</span>
-            <span>Current: {time.toISOString().substring(11, 19)} UTC</span>
-            <span>23:59 UTC</span>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 8, fontWeight: 600, color: 'var(--text-ghost)', marginBottom: 4 }}>
+            <span>00:00</span>
+            <span style={{ color: 'var(--text)', filter: 'drop-shadow(0 0 4px rgba(255,255,255,0.2))' }}>{time.toISOString().substring(11, 19)} UTC</span>
+            <span>23:59</span>
           </div>
           <div style={{
-            height: 6, width: '100%', background: 'var(--overlay-subtle)', borderRadius: 3, position: 'relative'
+            height: 4, width: '100%', background: 'rgba(255,255,255,0.05)', borderRadius: 2, position: 'relative'
           }}>
             {/* Session blocks */}
-            <div style={{ position: 'absolute', left: '33.3%', width: '33.3%', height: '100%', background: 'rgba(68,255,136,0.1)' }} /> {/* London: 8 to 16 */}
-            <div style={{ position: 'absolute', left: '54.1%', width: '37.5%', height: '100%', background: 'rgba(0,160,233,0.1)' }} /> {/* NY: 13 to 22 */}
+            <div style={{ position: 'absolute', left: '33.3%', width: '33.3%', height: '100%', background: 'rgba(68,255,136,0.3)', boxShadow: '0 0 6px rgba(68,255,136,0.2)' }} />
+            <div style={{ position: 'absolute', left: '54.1%', width: '37.5%', height: '100%', background: 'rgba(0,160,233,0.3)', boxShadow: '0 0 6px rgba(0,160,233,0.2)' }} />
             {/* Real-time playhead */}
             <div style={{
               position: 'absolute',
               left: `${(currentUTC / 24) * 100}%`,
-              top: -2, bottom: -2, width: 2,
-              background: '#ff4444',
-              boxShadow: '0 0 4px #ff4444',
+              top: -3, bottom: -3, width: 2,
+              background: '#fff',
+              boxShadow: '0 0 8px #fff',
               zIndex: 10
             }} />
           </div>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+        {/* Stacked Glassmorphic Gantt Timeline */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
           {SESSIONS.map(session => {
-            // Determine if active
             let isOpen = false;
             if (session.openUTC < session.closeUTC) {
               isOpen = currentUTC >= session.openUTC && currentUTC < session.closeUTC;
             } else {
-              // Crosses midnight (e.g. Sydney 22 to 7)
               isOpen = currentUTC >= session.openUTC || currentUTC < session.closeUTC;
             }
 
             const stateColor = isOpen ? '#44ff88' : 'var(--text-ghost)';
-            
-            // Calculate countdowns
             const countdown = isOpen 
               ? getCountdown(time, session.closeUTC, session.openUTC > session.closeUTC && currentUTC >= session.openUTC) 
               : getCountdown(time, session.openUTC, false);
 
             return (
               <div key={session.name} style={{
-                background: 'var(--overlay-subtle)',
-                border: `1px solid ${isOpen ? 'rgba(68,255,136,0.2)' : 'var(--border-subtle)'}`,
-                borderRadius: 4,
-                padding: '8px'
+                background: 'rgba(255, 255, 255, 0.03)',
+                backdropFilter: 'blur(10px)',
+                border: `1px solid ${isOpen ? 'rgba(68,255,136,0.15)' : 'rgba(255,255,255,0.05)'}`,
+                borderRadius: '8px',
+                padding: '10px 12px',
+                display: 'flex',
+                alignItems: 'center',
+                boxShadow: isOpen ? '0 4px 12px rgba(68,255,136,0.05)' : 'none',
+                transition: 'all 0.3s ease'
               }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                  <span style={{ fontSize: 10, fontWeight: 700, color: isOpen ? 'var(--text)' : 'var(--text-muted)' }}>
-                    {session.name}
-                  </span>
-                  <span style={{
-                    fontSize: 7, fontWeight: 700,
-                    background: isOpen ? 'rgba(68,255,136,0.1)' : 'var(--overlay-light)',
-                    color: stateColor,
-                    padding: '2px 4px', borderRadius: 2
-                  }}>
-                    {isOpen ? 'OPEN' : 'CLOSED'}
-                  </span>
-                </div>
+                {/* Active Dot */}
+                <div style={{
+                  width: 6, height: 6, borderRadius: '50%',
+                  background: stateColor,
+                  boxShadow: isOpen ? `0 0 8px ${stateColor}` : 'none',
+                  marginRight: 12,
+                  opacity: isOpen ? 1 : 0.3
+                }} />
                 
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 8 }}>
-                  <div style={{ color: 'var(--text-ghost)' }}>Local Market Hours</div>
-                  <div style={{ color: 'var(--text-muted)' }}>
-                    {formatLocalTime(session.openUTC)} - {formatLocalTime(session.closeUTC)}
+                {/* Info Block */}
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ fontSize: 11, fontWeight: 800, color: isOpen ? 'var(--text)' : 'var(--text-muted)' }}>
+                      {session.name}
+                    </span>
+                    <span style={{ fontSize: 9, color: 'var(--text-ghost)' }}>
+                      ({formatLocalTime(session.openUTC)} - {formatLocalTime(session.closeUTC)} Local)
+                    </span>
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 8, marginTop: 4 }}>
-                  <div style={{ color: 'var(--text-ghost)' }}>
+                {/* Inline Glass Timer */}
+                <div style={{
+                  background: 'rgba(0,0,0,0.3)',
+                  border: '1px solid rgba(255,255,255,0.05)',
+                  padding: '4px 8px',
+                  borderRadius: '6px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8
+                }}>
+                  <span style={{ fontSize: 7, textTransform: 'uppercase', color: 'var(--text-ghost)', letterSpacing: 0.5 }}>
                     {isOpen ? 'Closes in' : 'Opens in'}
-                  </div>
-                  <div style={{
-                    color: isOpen ? '#44ff88' : 'var(--text)',
-                    fontFamily: 'var(--font-mono)',
-                    fontWeight: 600
+                  </span>
+                  <span style={{
+                    fontSize: 11, 
+                    fontFamily: 'var(--font-mono)', 
+                    fontWeight: 700, 
+                    color: isOpen ? '#44ff88' : 'var(--text-muted)'
                   }}>
                     {countdown}
-                  </div>
+                  </span>
                 </div>
               </div>
             );
           })}
-        </div>
-        
-        <div style={{ fontSize: 7, color: 'var(--text-ghost)', textAlign: 'center', marginTop: 8 }}>
-          Hours automatically projected to your system's timezone
         </div>
       </PanelContent>
     </Panel>
