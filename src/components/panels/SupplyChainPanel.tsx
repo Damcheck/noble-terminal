@@ -69,15 +69,20 @@ export default function SupplyChainPanel() {
   // Recalculate stress — dynamically rescales based on real macro inputs
   useEffect(() => {
     const update = () => {
-      // Normalize deviations from "normal" baselines
-      const vixStress  = ((vix - 15) / 10) * 15;        // Base VIX~15
-      const oilStress  = ((oilPrice - 75) / 20) * 12;   // Base Oil~$75
-      const goldStress = ((goldPrice - 2000) / 400) * 8; // Base Gold~$2000
+      // Cast to numbers and fallback securely
+      const v = Number(vix) || 15;
+      const o = Number(oilPrice) || 75;
+      const g = Number(goldPrice) || 2000;
+
+      // Normalize deviations and strongly CLAMP them so a rogue data spike doesn't peg everything to 99
+      const vixStress  = Math.min(Math.max(((v - 15) / 10) * 15, -15), +20);
+      const oilStress  = Math.min(Math.max(((o - 75) / 20) * 12, -10), +20);
+      const goldStress = Math.min(Math.max(((g - 2000) / 400) * 8, -10), +20);
 
       setNodes(prevNodes => {
         return BASE_NODES.map(n => {
           const rawStress = n.base + vixStress + oilStress + goldStress;
-          const stress = Math.min(Math.max(Math.round(rawStress), 0), 99);
+          const stress = Math.min(Math.max(Math.round(rawStress), 10), 99);
           
           const prev = prevNodes.find(x => x.id === n.id);
           const trend = prev
