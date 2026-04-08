@@ -145,14 +145,14 @@ export default function TerminalFooter() {
           [ DIAGNOSTICS ]
         </button>
         <a
-          href="https://discord.gg/noblefunded"
+          href="https://t.me/noblefunded"
           target="_blank"
           rel="noopener noreferrer"
           style={{ color: 'var(--text-faint)', textDecoration: 'none' }}
           onMouseEnter={e => (e.currentTarget.style.color = 'var(--text)')}
           onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-faint)')}
         >
-          DISCORD
+          TELEGRAM
         </a>
       </div>
 
