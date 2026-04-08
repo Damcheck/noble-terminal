@@ -136,6 +136,16 @@ export default function OrderBookPanel() {
             </div>
           </>
         )}
+        
+        {/* DATA PROVENANCE WATERMARK */}
+        <div style={{
+          position: 'absolute', bottom: 6, right: 8,
+          fontSize: 8, fontFamily: 'var(--font-mono)',
+          color: 'var(--text-ghost)', letterSpacing: 0.5,
+          pointerEvents: 'none', zIndex: 10
+        }}>
+          DATA: FINNHUB WSS DIRECT
+        </div>
       </PanelContent>
     </Panel>
   );

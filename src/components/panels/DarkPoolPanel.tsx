@@ -148,8 +148,15 @@ export default function DarkPoolPanel() {
             ))}
           </tbody>
         </table>
-        <div style={{ padding: '3px 8px', fontSize: 7, color: 'var(--text-ghost)', borderTop: '1px solid var(--border-subtle)' }}>
-          Prices verified real-time · Volume & specific venues approximated algorithmically
+        
+        {/* DATA PROVENANCE WATERMARK */}
+        <div style={{
+          position: 'absolute', bottom: 6, right: 8,
+          fontSize: 8, fontFamily: 'var(--font-mono)',
+          color: 'var(--text-ghost)', letterSpacing: 0.5,
+          pointerEvents: 'none', zIndex: 10
+        }}>
+          DATA: FINNHUB WSS (ANCHORED)
         </div>
       </PanelContent>
     </Panel>
