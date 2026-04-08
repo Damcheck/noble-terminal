@@ -64,7 +64,7 @@ export async function GET(request: NextRequest) {
       }))
     } else {
       // CoinGecko rate-limited — use Yahoo Finance as fallback
-      const yahooFinance = (await import('yahoo-finance2')).default
+      const YahooFinance = (await import('yahoo-finance2')).default; const yahooFinance = new YahooFinance();
       // // // yahooFinance.suppressNotices(['yahooSurvey']) // type error on vercel building
       const yahooSymbols = Object.values(SYMBOL_MAP).map(s => `${s}-USD`)
       const quotes: any = await yahooFinance.quote(yahooSymbols as any)

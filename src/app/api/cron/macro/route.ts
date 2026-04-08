@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
           if (!res.ok) {
             // FRED requires API key — use Yahoo Finance for VIX at minimum
             if (series.id === 'VIXCLS') {
-              const yahooFinance = (await import('yahoo-finance2')).default
+              const YahooFinance = (await import('yahoo-finance2')).default; const yahooFinance = new YahooFinance();
               // // yahooFinance.suppressNotices(['yahooSurvey'])
               const q: any = await yahooFinance.quote('^VIX' as any)
               if (q?.regularMarketPrice != null) {
@@ -82,7 +82,7 @@ export async function GET(request: NextRequest) {
 
     // Also fetch real-time yields from Yahoo Finance as a supplement
     try {
-      const yahooFinance = (await import('yahoo-finance2')).default
+      const YahooFinance = (await import('yahoo-finance2')).default; const yahooFinance = new YahooFinance();
       // // yahooFinance.suppressNotices(['yahooSurvey'])
       const yieldSymbols = ['^TNX', '^FVX', '^TYX', '^IRX']
       const yieldNames: Record<string, string> = {

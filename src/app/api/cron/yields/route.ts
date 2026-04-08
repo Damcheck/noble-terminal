@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
 
     // 1. Try Yahoo Finance for live real-time yields (4 key points)
     try {
-      const yahooFinance = (await import('yahoo-finance2')).default
+      const YahooFinance = (await import('yahoo-finance2')).default; const yahooFinance = new YahooFinance();
       // // yahooFinance.suppressNotices(['yahooSurvey'])
       const quotes: any = await yahooFinance.quote(YIELD_SYMBOLS.map(y => y.symbol as any))
       const arr = Array.isArray(quotes) ? quotes : [quotes]

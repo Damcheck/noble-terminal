@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
   if (authError) return authError
 
     try {
-    const yahooFinance = (await import('yahoo-finance2')).default
+    const YahooFinance = (await import('yahoo-finance2')).default; const yahooFinance = new YahooFinance();
     // // yahooFinance.suppressNotices(['yahooSurvey'])
 
     const symbols = FOREX_YAHOO.map(f => f.symbol)
