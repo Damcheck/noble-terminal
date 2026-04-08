@@ -182,3 +182,14 @@ body {
   -o-user-select: none;
   user-select: none;
 }
+
+/* Force mobile scrolling and disable drag interactions completely on touch screens */
+@media (max-width: 768px) {
+  .react-grid-item {
+    touch-action: pan-y !important;
+  }
+  .drag-handle {
+    display: none !important;
+    pointer-events: none !important;
+  }
+}
