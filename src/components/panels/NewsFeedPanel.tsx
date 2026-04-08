@@ -27,9 +27,9 @@ interface RSSArticle {
   category: string;
 }
 
-function timeAgo(dateStr: string): string {
+function timeAgo(dateStr: string, now: number): string {
   if (!dateStr) return '';
-  const diff = (Date.now() - new Date(dateStr).getTime()) / 1000;
+  const diff = (now - new Date(dateStr).getTime()) / 1000;
   if (diff < 60) return `${Math.floor(diff)}s`;
   if (diff < 3600) return `${Math.floor(diff / 60)}m`;
   if (diff < 86400) return `${Math.floor(diff / 3600)}h`;
@@ -41,6 +41,7 @@ export default function NewsFeedPanel() {
   const [articles, setArticles] = useState<RSSArticle[]>([]);
   const [lastFetch, setLastFetch] = useState<Date | null>(null);
   const [loading, setLoading] = useState(true);
+  const [currentTime, setCurrentTime] = useState(Date.now()); // Core UI ticker
 
   const fetchNews = useCallback(async () => {
     try {
@@ -56,16 +57,22 @@ export default function NewsFeedPanel() {
 
   useEffect(() => {
     fetchNews();
-    // Refresh every 60 seconds — ForexLive pushes headlines instantly
-    const id = setInterval(fetchNews, 60_000);
+    // Ultra-fast 5-second polling (Safe because /api/rss uses 60s Edge Cache)
+    const id = setInterval(fetchNews, 5_000);
     return () => clearInterval(id);
   }, [fetchNews]);
+
+  useEffect(() => {
+    // 1-second visual ticker so UX feels alive and timestamps organically tick
+    const id = setInterval(() => setCurrentTime(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, []);
 
   const filtered = activeTab === 'ALL'
     ? articles
     : articles.filter(a => a.category.toUpperCase() === activeTab || a.source.toUpperCase().includes(activeTab));
 
-  const secondsAgoFetch = lastFetch ? Math.floor((Date.now() - lastFetch.getTime()) / 1000) : null;
+  const secondsAgoFetch = lastFetch ? Math.floor((currentTime - lastFetch.getTime()) / 1000) : null;
 
   return (
     <Panel>
@@ -136,7 +143,7 @@ export default function NewsFeedPanel() {
                   {article.category}
                 </span>
                 <span style={{ marginLeft: 'auto', fontSize: 7, color: 'var(--text-ghost)' }}>
-                  {timeAgo(article.pubDate)}
+                  {timeAgo(article.pubDate, currentTime)}
                 </span>
               </div>
               {/* Headline */}
