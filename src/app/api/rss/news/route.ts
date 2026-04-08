@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 
+// force-dynamic: never cache the route handler itself at the Edge layer.
+// Individual feed fetch() calls use `next: { revalidate: 60 }` for ISR caching.
 export const dynamic = 'force-dynamic';
-export const revalidate = 60; // cache for 60s to avoid hammering feeds
 
 interface RSSItem {
   title: string;

@@ -2,8 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { Panel, PanelHeader, PanelContent, LiveBadge } from '@/components/ui/Panel';
-import { useFinnhubStore } from '@/store/finnhubStore';
-import { useMarketStore } from '@/store/marketStore';
 
 // CDS (Credit Default Swaps) — sovereign and corporate risk
 // Real-time data costs ~$50k/yr (Bloomberg/Markit). We anchor spreads to live
@@ -30,28 +28,39 @@ function getStatus(spread: number): { label: string; color: string } {
 }
 
 export default function CDSPanel() {
-  const { ticks } = useFinnhubStore();
-  const { prices } = useMarketStore();
+  const [vix, setVix] = useState<number>(18);
   const [spreads, setSpreads] = useState(CDS_ENTITIES.map(e => ({ ...e, spread: e.baseSpread })));
 
-  // Recalculate spreads from live VIX every 10 seconds
+  // Fetch VIX via REST every 60s (WebSocket doesn't stream ^VIX on free tier)
+  useEffect(() => {
+    const fetchVix = async () => {
+      try {
+        const token = process.env.NEXT_PUBLIC_FINNHUB_TOKEN;
+        if (!token) return;
+        const res = await fetch(`https://finnhub.io/api/v1/quote?symbol=%5EVIX&token=${token}`);
+        const data = await res.json();
+        if (data?.c && data.c > 0) setVix(data.c);
+      } catch { /* silent */ }
+    };
+    fetchVix();
+    const vixTimer = setInterval(fetchVix, 60_000);
+    return () => clearInterval(vixTimer);
+  }, []);
+
+  // Recalculate spreads from VIX every 10 seconds — stable dep array
   useEffect(() => {
     const update = () => {
-      const vix = ticks['^VIX']?.price ?? prices['^VIX']?.price ?? 18;
-      // VIX-based spread multiplier: higher VIX = wider spreads
-      const vixMultiplier = 0.7 + (vix / 18) * 0.3; // at VIX 18 = 1.0x, at VIX 36 = 1.6x
-
+      const vixMultiplier = 0.7 + (vix / 18) * 0.3;
       setSpreads(CDS_ENTITIES.map(e => {
         const noise = 1 + (Math.random() - 0.5) * 0.04; // ±2% micro-variance
         const spread = Math.round(e.baseSpread * vixMultiplier * noise);
         return { ...e, spread };
       }));
     };
-
     update();
     const id = setInterval(update, 10_000);
     return () => clearInterval(id);
-  }, [ticks, prices]);
+  }, [vix]); // only re-runs when VIX value changes, not on every tick
 
   return (
     <Panel>

@@ -11,27 +11,11 @@ export default function SecurityWrapper({ children }: { children: React.ReactNod
 
     // 2. Disable DevTools Keyboard Shortcuts
     const handleKeyDown = (e: KeyboardEvent) => {
-      // F12
-      if (e.key === 'F12') {
+      if (e.key === 'F12') e.preventDefault();
+      if ((e.ctrlKey && e.shiftKey && ['I','C','J'].includes(e.key)) || 
+          (e.metaKey && e.altKey && ['i','c','j'].includes(e.key))) {
         e.preventDefault();
       }
-      
-      // Ctrl+Shift+I (Windows/Linux) or Cmd+Option+I (Mac)
-      if ((e.ctrlKey && e.shiftKey && e.key === 'I') || (e.metaKey && e.altKey && e.key === 'i')) {
-        e.preventDefault();
-      }
-      
-      // Ctrl+Shift+C / Cmd+Option+C (Element Inspector)
-      if ((e.ctrlKey && e.shiftKey && e.key === 'C') || (e.metaKey && e.altKey && e.key === 'c')) {
-        e.preventDefault();
-      }
-      
-      // Ctrl+Shift+J / Cmd+Option+J (Console)
-      if ((e.ctrlKey && e.shiftKey && e.key === 'J') || (e.metaKey && e.altKey && e.key === 'j')) {
-        e.preventDefault();
-      }
-      
-      // Ctrl+U / Cmd+U (View Source)
       if ((e.ctrlKey && e.key === 'U') || (e.metaKey && e.key === 'u')) {
         e.preventDefault();
       }
@@ -42,27 +26,33 @@ export default function SecurityWrapper({ children }: { children: React.ReactNod
       e.preventDefault();
     };
 
-    if (process.env.NODE_ENV === 'production') {
+    const isProd = process.env.NODE_ENV === 'production';
+    if (isProd) {
       window.addEventListener('contextmenu', handleContextMenu);
       window.addEventListener('keydown', handleKeyDown);
       window.addEventListener('dragstart', handleDragStart);
     }
 
+    // Cleanup only removes what was actually attached
     return () => {
-      window.removeEventListener('contextmenu', handleContextMenu);
-      window.removeEventListener('keydown', handleKeyDown);
-      window.removeEventListener('dragstart', handleDragStart);
+      if (isProd) {
+        window.removeEventListener('contextmenu', handleContextMenu);
+        window.removeEventListener('keydown', handleKeyDown);
+        window.removeEventListener('dragstart', handleDragStart);
+      }
     };
   }, []);
+
+  const isProd = process.env.NODE_ENV === 'production';
 
   return (
     <div 
       style={{ 
         width: '100%', 
         height: '100%', 
-        // 4. Disable text selection globally so people cannot highlight code/text
-        userSelect: 'none',
-        WebkitUserSelect: 'none',
+        // Only disable text selection in production — dev needs copy-paste
+        userSelect: isProd ? 'none' : undefined,
+        WebkitUserSelect: isProd ? 'none' : undefined,
       }}
     >
       {children}

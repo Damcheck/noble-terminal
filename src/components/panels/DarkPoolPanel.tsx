@@ -87,11 +87,17 @@ export default function DarkPoolPanel() {
     setTrades([]);
   }, [rawSymbol]);
 
-  // Generate a new trade every 2–5 seconds
+  // Keep a ref to the latest price so the interval never needs to restart from price changes
+  const livePriceRef = useRef<number | null>(livePrice);
+  useEffect(() => { livePriceRef.current = livePrice; }, [livePrice]);
+
+  // Keep a ref to rawSymbol for the same reason
+  const rawSymbolRef = useRef(rawSymbol);
+  useEffect(() => { rawSymbolRef.current = rawSymbol; }, [rawSymbol]);
+
+  // Seed initial trades when price first arrives (stable dep — only rawSymbol resets)
   useEffect(() => {
     if (!livePrice) return;
-    
-    // Seed initial trades if empty
     setTrades(prev => {
       if (prev.length > 0) return prev;
       const initial: DarkTrade[] = [];
@@ -101,16 +107,30 @@ export default function DarkPoolPanel() {
       }
       return initial;
     });
+  }, [rawSymbol]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    const interval = setInterval(() => {
-      const newTrade = generateTrade(rawSymbol, livePrice);
-      if (newTrade) {
-        setTrades(prev => [newTrade, ...prev.slice(0, 14)]);
-      }
-    }, Math.floor(randBetween(2000, 5000)));
+  // Self-rescheduling trade generator — reads price from ref so it never resets on tick
+  useEffect(() => {
+    let timeoutId: ReturnType<typeof setTimeout>;
 
-    return () => clearInterval(interval);
-  }, [rawSymbol, livePrice]);
+    const schedule = () => {
+      const delay = Math.floor(randBetween(2000, 5000));
+      timeoutId = setTimeout(() => {
+        const price = livePriceRef.current;
+        const sym = rawSymbolRef.current;
+        if (price) {
+          const newTrade = generateTrade(sym, price);
+          if (newTrade) {
+            setTrades(prev => [newTrade, ...prev.slice(0, 14)]);
+          }
+        }
+        schedule(); // reschedule next
+      }, delay);
+    };
+
+    schedule();
+    return () => clearTimeout(timeoutId);
+  }, [rawSymbol]); // only restart when symbol changes
 
   return (
     <Panel>

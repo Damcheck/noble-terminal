@@ -18,33 +18,39 @@ const DISPLAY_ORDER = [
 
 export function MacroPanel() {
   const { indicators, initializeRealtime } = useMacroStore();
-  const [tick, setTick] = useState(0);
+  const [vixLive, setVixLive] = useState<number | null>(null);
 
   useEffect(() => {
     initializeRealtime();
-    // Simulate real-time tick flow on macro derivatives (DXY, VIX, Bonds)
-    const id = setInterval(() => setTick(t => t + 1), 3000);
-    return () => clearInterval(id);
   }, [initializeRealtime]);
+
+  // Fetch live VIX via REST to replace the macro store VIX with real data
+  useEffect(() => {
+    const fetchVix = async () => {
+      try {
+        const token = process.env.NEXT_PUBLIC_FINNHUB_TOKEN;
+        if (!token) return;
+        const res = await fetch(`https://finnhub.io/api/v1/quote?symbol=%5EVIX&token=${token}`);
+        const data = await res.json();
+        if (data?.c && data.c > 0) setVixLive(data.c);
+      } catch { /* silent */ }
+    };
+    fetchVix();
+    const id = setInterval(fetchVix, 60_000);
+    return () => clearInterval(id);
+  }, []);
 
   const displayRows = useMemo(() => {
     return DISPLAY_ORDER.map(cfg => {
       const ind = indicators[cfg.series_id];
       const fallback = MOCK_MACRO.find(m => m.label === cfg.label);
       
-      let baseValue = parseFloat((ind?.value ?? fallback?.value ?? 0).toString());
-      let change = parseFloat((ind?.change_pct ?? fallback?.change ?? 0).toString());
-
-      // Only add noise to live-moving macro elements (VIX, DXY, Bonds)
-      // Fed Rate, CPI, Unemployment stay static until released
-      const isDynamic = ['VIX', 'US 10Y', 'US 2Y', 'DXY', '2s10s Sprd'].includes(cfg.label);
+      // Use real VIX REST value if available, otherwise use Supabase/fallback
+      let baseValue = cfg.label === 'VIX' && vixLive
+        ? vixLive
+        : parseFloat((ind?.value ?? fallback?.value ?? 0).toString());
       
-      if (isDynamic) {
-        // Generate a tiny random walk variance
-        const noise = (Math.random() - 0.5) * (baseValue * 0.002);
-        baseValue += noise;
-        change += (noise / baseValue) * 100;
-      }
+      const change = parseFloat((ind?.change_pct ?? fallback?.change ?? 0).toString());
 
       return {
         label: cfg.label,
@@ -53,7 +59,7 @@ export function MacroPanel() {
         change,
       };
     });
-  }, [indicators, tick]);
+  }, [indicators, vixLive]);
 
   return (
     <Panel>

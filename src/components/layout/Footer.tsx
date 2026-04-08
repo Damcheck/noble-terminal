@@ -9,10 +9,15 @@ export default function TerminalFooter() {
   const [mem, setMem] = useState<number | null>(null);
   const [opsPerSec, setOpsPerSec] = useState(0);
   const [diagOpen, setDiagOpen] = useState(false);
+
+  // Toggle raw stream capture when diagnostics window opens/closes.
+  // This prevents 30x/sec Zustand re-renders when the modal is closed.
+  const openDiag = () => { setDiagnosticsEnabled(true); setDiagOpen(true); };
+  const closeDiag = () => { setDiagnosticsEnabled(false); setDiagOpen(false); };
   const opsCountRef = useRef(0);
   const lastTicksRef = useRef<Record<string, unknown>>({});
 
-  const { isConnected: finnhubConnected, ticks } = useFinnhubStore();
+  const { isConnected: finnhubConnected, ticks, setDiagnosticsEnabled } = useFinnhubStore();
   const { isRealtimeConnected: supabaseConnected } = useMarketStore();
 
   const isConnected = finnhubConnected || supabaseConnected;
@@ -118,7 +123,7 @@ export default function TerminalFooter() {
         NOBLE TERMINAL — INSTITUTIONAL INTELLIGENCE FOR ALL
       </div>
 
-    // Right — Live system stats
+      {/* Right — Live system stats */}
       <div className="flex items-center gap-4">
         <span style={{ color: isConnected ? '#44ff88' : '#ff4444' }}>
           DATA: {isConnected ? 'REAL-TIME SECURE' : 'RECONNECTING…'}
@@ -132,7 +137,7 @@ export default function TerminalFooter() {
         </span>
         <div style={{ width: 1, height: 10, background: 'var(--border)', margin: '0 2px' }} />
         <button
-          onClick={() => setDiagOpen(true)}
+          onClick={openDiag}
           style={{ color: 'var(--text-faint)', cursor: 'pointer', background: 'transparent', border: 'none' }}
           onMouseEnter={e => (e.currentTarget.style.color = 'var(--text)')}
           onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-faint)')}
@@ -153,7 +158,7 @@ export default function TerminalFooter() {
 
       {/* Diagnostics Modal */}
       {diagOpen && (
-        <DiagnosticsModal onClose={() => setDiagOpen(false)} />
+        <DiagnosticsModal onClose={closeDiag} />
       )}
     </footer>
   );

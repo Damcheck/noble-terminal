@@ -18,26 +18,25 @@ const FOREX_ONLY_PAIRS = [
 ];
 
 export default function ForexPanel() {
-  const { setSelectedSymbol } = useMarketStore();
+  const { prices, setSelectedSymbol } = useMarketStore();
   const { ticks, isConnected: isFinnhubConnected } = useFinnhubStore();
 
   const renderList = useMemo(() => {
     return FOREX_ONLY_PAIRS.map(baseItem => {
       const tick = ticks[baseItem.symbol];
+      const dbPrice = prices[baseItem.symbol];
 
-      if (tick) {
-        return {
-          ...baseItem,
-          bid: tick.price,
-          ask: tick.price * 1.00015, // dynamic 1.5 pip spread estimation for FX
-          // In a full production app, you would source the % change from a daily anchor.
-          // For now, we return baseItem.change to maintain stability or a fixed anchor point.
-          change: baseItem.change, 
-        };
-      }
-      return baseItem;
+      // Prefer Finnhub tick for bid price; use DB price as fallback
+      const bid = tick?.price ?? dbPrice?.price ?? baseItem.bid;
+      const ask = tick ? tick.price * 1.00015 : dbPrice?.ask ?? baseItem.ask;
+
+      // Change % comes from Yahoo Finance cron in Supabase (updated every minute)
+      // Fall back to static base value only if DB has never been populated
+      const change = dbPrice?.change_pct ?? baseItem.change;
+
+      return { ...baseItem, bid, ask, change };
     });
-  }, [ticks]);
+  }, [ticks, prices]);
 
   return (
     <Panel>

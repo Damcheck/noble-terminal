@@ -23,10 +23,10 @@ export default function InsiderTradingPanel() {
   useEffect(() => {
     let isMounted = true;
     
-    // Fallback seed data in case API limits hit immediately
+    // Neutral seed data shown while real API data loads — generic, no specific names
     const fallbackSeed: RealTrade[] = [
-      { id: 'tx1', name: 'HUANG JEN HSUN', symbol: 'NVDA', action: 'SELL', share: 120000, price: 128.50, filingDate: new Date().toISOString().split('T')[0], impact: 'HIGH' },
-      { id: 'tx2', name: 'ZUCKERBERG MARK', symbol: 'META', action: 'SELL', share: 55000, price: 540.20, filingDate: new Date(Date.now() - 86400000).toISOString().split('T')[0], impact: 'HIGH' },
+      { id: 'seed1', name: 'C-SUITE EXECUTIVE', symbol: 'NVDA', action: 'SELL', share: 120000, price: 0, filingDate: new Date().toISOString().split('T')[0], impact: 'HIGH' },
+      { id: 'seed2', name: 'BOARD MEMBER', symbol: 'META', action: 'SELL', share: 55000, price: 0, filingDate: new Date(Date.now() - 86400000).toISOString().split('T')[0], impact: 'HIGH' },
     ];
 
     const fetchNextStock = async () => {

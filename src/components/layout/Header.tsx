@@ -35,18 +35,30 @@ export default function TerminalHeader() {
   const { articles } = useNewsStore();
   const { theme, toggleTheme } = useThemeStore();
 
-  // Squawk: speak new headlines as they arrive
+  const lastSpokenTimeRef = useRef<number>(0);
+
+  // Squawk: speak new headlines as they arrive, with rate-limit + cancel-previous
   useEffect(() => {
     if (!squawkOn || typeof window === 'undefined' || !('speechSynthesis' in window)) return;
     const latest = articles[0];
     if (!latest || latest.headline === lastSpokenRef.current) return;
+    // Enforce 10s minimum between announcements
+    if (Date.now() - lastSpokenTimeRef.current < 10_000) return;
     lastSpokenRef.current = latest.headline;
+    lastSpokenTimeRef.current = Date.now();
+    // Cancel any in-flight utterance before starting a new one
+    window.speechSynthesis.cancel();
     const utter = new SpeechSynthesisUtterance(latest.headline);
     utter.rate = 1.1;
     utter.pitch = 1.0;
     utter.volume = 1.0;
     window.speechSynthesis.speak(utter);
   }, [articles, squawkOn]);
+
+  // One-time theme init on client mount (NOT inside the clock interval!)
+  useEffect(() => {
+    useThemeStore.getState().initializeTheme();
+  }, []);
 
   useEffect(() => {
     const tick = () => {
@@ -56,10 +68,6 @@ export default function TerminalHeader() {
     };
     tick();
     const iv = setInterval(tick, 1000);
-    
-    // Boot up theme on client-side render
-    useThemeStore.getState().initializeTheme();
-    
     return () => clearInterval(iv);
   }, []);
 

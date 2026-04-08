@@ -52,6 +52,8 @@ export interface FinnhubTick {
 interface FinnhubState {
   ticks: Record<string, FinnhubTick>;
   rawStream: string[];
+  diagnosticsEnabled: boolean;    // only capture raw stream when modal is open
+  setDiagnosticsEnabled: (on: boolean) => void;
   isConnected: boolean;
   connect: () => void;
   disconnect: () => void;
@@ -74,6 +76,8 @@ function scheduleReconnect(connectFn: () => void) {
 export const useFinnhubStore = create<FinnhubState>((set, get) => ({
   ticks: {},
   rawStream: [],
+  diagnosticsEnabled: false,
+  setDiagnosticsEnabled: (on: boolean) => set({ diagnosticsEnabled: on }),
   isConnected: false,
   _ws: null,
 
@@ -114,10 +118,12 @@ export const useFinnhubStore = create<FinnhubState>((set, get) => ({
       try {
         const rawString = event.data;
         
-        // Store raw payload for diagnostics (keep last 20)
-        set(state => ({
-          rawStream: [rawString, ...state.rawStream].slice(0, 20)
-        }));
+        // Only store raw payload when diagnostics modal is open — avoids 30x/sec re-renders
+        if (get().diagnosticsEnabled) {
+          set(state => ({
+            rawStream: [rawString, ...state.rawStream].slice(0, 20)
+          }));
+        }
 
         const msg = JSON.parse(rawString);
         if (msg.type !== 'trade' || !Array.isArray(msg.data)) return;
