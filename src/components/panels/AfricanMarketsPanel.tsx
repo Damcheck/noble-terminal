@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo } from 'react';
 import { Panel, PanelHeader, PanelContent, LiveBadge } from '@/components/ui/Panel';
 import { AFRICAN_MARKETS } from '@/lib/mockData';
 import { useMarketStore } from '@/store/marketStore';
@@ -9,58 +9,55 @@ const NGX_SYMBOLS = ['GTCO', 'ZENITHBANK', 'ACCESSCORP', 'MTNN', 'DANGCEM', 'UBA
 
 export default function AfricanMarketsPanel() {
   const { prices } = useMarketStore();
-  const [tick, setTick] = useState(0);
 
-  // Force a re-render every 2 seconds to simulate high-frequency exchange matching
-  useEffect(() => {
-    const id = setInterval(() => setTick(t => t + 1), 2500);
-    return () => clearInterval(id);
-  }, []);
-
+  // USD/NGN — from Yahoo Finance cron via Supabase, or static fallback (no noise)
   const usdNgn = useMemo(() => {
     const live = prices['USDNGN=X'];
-    const base = live?.price ?? AFRICAN_MARKETS.usdNgn.value;
-    const baseChg = live?.change_pct ?? AFRICAN_MARKETS.usdNgn.change;
-    // Micro-volatility in the NGN market
-    const noise = (Math.random() - 0.5) * 5; 
-    return { value: base + noise, change: baseChg + (noise / base) * 100 };
-  }, [prices, tick]);
+    return {
+      value: live?.price ?? AFRICAN_MARKETS.usdNgn.value,
+      change: live?.change_pct ?? 0,
+    };
+  }, [prices]);
 
+  // NGX All-Share Index — from Supabase cron or static fallback (no noise)
   const ngxAllShare = useMemo(() => {
     const live = prices['NGX.LG'];
-    const base = live?.price ?? AFRICAN_MARKETS.ngxAllShare.value;
-    const baseChg = live?.change_pct ?? AFRICAN_MARKETS.ngxAllShare.change;
-    const noise = (Math.random() - 0.5) * 20; 
-    return { value: base + noise, change: baseChg + (noise / base) * 100 };
-  }, [prices, tick]);
+    return {
+      value: live?.price ?? AFRICAN_MARKETS.ngxAllShare.value,
+      change: live?.change_pct ?? 0,
+    };
+  }, [prices]);
 
+  // NGX Banking Index — from Supabase cron or static fallback (no noise)
   const ngxBanking = useMemo(() => {
-    const base = AFRICAN_MARKETS.ngxBanking.value;
-    const baseChg = AFRICAN_MARKETS.ngxBanking.change;
-    const noise = (Math.random() - 0.5) * 2; 
-    return { value: base + noise, change: baseChg + (noise / base) * 100 };
-  }, [tick]);
+    const live = prices['NGXBANKING.LG'];
+    return {
+      value: live?.price ?? AFRICAN_MARKETS.ngxBanking.value,
+      change: live?.change_pct ?? 0,
+    };
+  }, [prices]);
 
   const ngxStocks = useMemo(() => {
     const defaultData = [
-      { symbol: 'GTCO', price: 47.50, change: 1.2 },
-      { symbol: 'ZENITHBANK', price: 41.20, change: 0.8 },
-      { symbol: 'ACCESSCORP', price: 24.15, change: -0.5 },
-      { symbol: 'MTNN', price: 230.50, change: 2.1 },
-      { symbol: 'DANGCEM', price: 650.00, change: 0.1 },
-      { symbol: 'UBA', price: 28.40, change: -1.2 },
+      { symbol: 'GTCO', price: 47.50, change: 0 },
+      { symbol: 'ZENITHBANK', price: 41.20, change: 0 },
+      { symbol: 'ACCESSCORP', price: 24.15, change: 0 },
+      { symbol: 'MTNN', price: 230.50, change: 0 },
+      { symbol: 'DANGCEM', price: 650.00, change: 0 },
+      { symbol: 'UBA', price: 28.40, change: 0 },
     ];
 
     return NGX_SYMBOLS.map(sym => {
       const live = prices[`${sym}.LG`];
       const fallback = defaultData.find(d => d.symbol === sym)!;
-      const base = live?.price ?? fallback.price;
-      const baseChg = live?.change_pct ?? fallback.change;
-      // High-frequency penny stock noise
-      const noise = (Math.random() - 0.5) * base * 0.005;
-      return { symbol: sym, price: base + noise, change: baseChg + (noise / base) * 100 };
+      // Exact Supabase price or exact fallback — NO noise
+      return {
+        symbol: sym,
+        price: live?.price ?? fallback.price,
+        change: live?.change_pct ?? fallback.change,
+      };
     }).sort((a, b) => b.change - a.change);
-  }, [prices, tick]);
+  }, [prices]);
 
   const topGainers = ngxStocks.filter(s => s.change >= 0).slice(0, 3);
   const topLosers = ngxStocks.filter(s => s.change < 0).reverse().slice(0, 3); // most negative first

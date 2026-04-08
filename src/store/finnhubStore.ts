@@ -51,6 +51,7 @@ export interface FinnhubTick {
 
 interface FinnhubState {
   ticks: Record<string, FinnhubTick>;
+  tradeHistory: FinnhubTick[]; // stores last 50 real trades globally
   rawStream: string[];
   diagnosticsEnabled: boolean;    // only capture raw stream when modal is open
   setDiagnosticsEnabled: (on: boolean) => void;
@@ -75,6 +76,7 @@ function scheduleReconnect(connectFn: () => void) {
 
 export const useFinnhubStore = create<FinnhubState>((set, get) => ({
   ticks: {},
+  tradeHistory: [],
   rawStream: [],
   diagnosticsEnabled: false,
   setDiagnosticsEnabled: (on: boolean) => set({ diagnosticsEnabled: on }),
@@ -131,21 +133,29 @@ export const useFinnhubStore = create<FinnhubState>((set, get) => ({
         const updates: Record<string, FinnhubTick> = {};
         const currentTicks = get().ticks;
 
+        const newHistoryItems: FinnhubTick[] = [];
+
         for (const trade of msg.data) {
           const internalKey = FINNHUB_SYMBOLS[trade.s];
           if (!internalKey) continue;
 
-          updates[internalKey] = {
+          const tickObj = {
             symbol: internalKey,
             price: trade.p,
             volume: trade.v,
             timestamp: trade.t,
             prevPrice: currentTicks[internalKey]?.price,
           };
+
+          updates[internalKey] = tickObj;
+          newHistoryItems.push(tickObj);
         }
 
         if (Object.keys(updates).length > 0) {
-          set(state => ({ ticks: { ...state.ticks, ...updates } }));
+          set(state => ({ 
+            ticks: { ...state.ticks, ...updates },
+            tradeHistory: [...newHistoryItems, ...state.tradeHistory].slice(0, 50)
+          }));
         }
       } catch (_) {}
     };

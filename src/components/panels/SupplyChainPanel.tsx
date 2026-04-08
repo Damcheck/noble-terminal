@@ -41,24 +41,40 @@ function getStressInfo(stress: number) {
 }
 
 export default function SupplyChainPanel() {
-  const { ticks } = useFinnhubStore();
   const { prices } = useMarketStore();
+  const { ticks } = useFinnhubStore();
   const [nodes, setNodes] = useState<ChainNode[]>([]);
+  const [vix, setVix] = useState(18);
 
+  // Fetch VIX via REST (same pattern as RiskPanel/CDSPanel)
+  useEffect(() => {
+    const fetchVix = async () => {
+      try {
+        const token = process.env.NEXT_PUBLIC_FINNHUB_TOKEN;
+        if (!token) return;
+        const res = await fetch(`https://finnhub.io/api/v1/quote?symbol=%5EVIX&token=${token}`);
+        const data = await res.json();
+        if (data?.c && data.c > 0) setVix(data.c);
+      } catch { /* silent */ }
+    };
+    fetchVix();
+    const vixTimer = setInterval(fetchVix, 60_000);
+    return () => clearInterval(vixTimer);
+  }, []);
+
+  // Derive oil and gold from live ticks or Supabase (stable ref via individual values)
+  const oilPrice = ticks['USOIL']?.price ?? prices['CL=F']?.price ?? 71;
+  const goldPrice = ticks['XAUUSD']?.price ?? prices['GC=F']?.price ?? 2980;
+
+  // Recalculate stress — runs only when VIX, oil, or gold changes
   useEffect(() => {
     const update = () => {
-      const vix = ticks['^VIX']?.price ?? prices['^VIX']?.price ?? 18;
-      const oil = ticks['CL=F']?.price ?? prices['CL=F']?.price ?? 71;
-      const gold = ticks['GC=F']?.price ?? prices['GC=F']?.price ?? 2980;
-
-      // VIX over 25 = stress spike, oil over 80 = logistics cost pressure
-      const vixStress   = ((vix - 12) / 28) * 30; // 0–30 from VIX
-      const oilStress   = ((oil - 60) / 40) * 20;  // 0–20 from oil price
-      const goldStress  = ((gold - 2000) / 1000) * 10; // 0–10 from gold flight-to-safety
+      const vixStress  = ((vix - 12) / 28) * 30;
+      const oilStress  = ((oilPrice - 60) / 40) * 20;
+      const goldStress = ((goldPrice - 2000) / 1000) * 10;
 
       const updated: ChainNode[] = BASE_NODES.map(n => {
-        const noise = (Math.random() - 0.5) * 6;
-        const rawStress = n.base + vixStress + oilStress + goldStress + noise;
+        const rawStress = n.base + vixStress + oilStress + goldStress;
         const stress = Math.min(Math.max(Math.round(rawStress), 0), 99);
         const prev = nodes.find(x => x.id === n.id);
         const trend = prev
@@ -74,14 +90,13 @@ export default function SupplyChainPanel() {
           indicator: info.label,
         };
       });
-
       setNodes(updated);
     };
 
     update();
-    const id = setInterval(update, 15_000); // update every 15s
+    const id = setInterval(update, 15_000);
     return () => clearInterval(id);
-  }, [ticks, prices]); // re-run when VIX or oil moves
+  }, [vix, oilPrice, goldPrice]); // stable primitive deps — no 30x/sec recreation
 
   return (
     <Panel>

@@ -52,8 +52,7 @@ export default function CDSPanel() {
     const update = () => {
       const vixMultiplier = 0.7 + (vix / 18) * 0.3;
       setSpreads(CDS_ENTITIES.map(e => {
-        const noise = 1 + (Math.random() - 0.5) * 0.04; // ±2% micro-variance
-        const spread = Math.round(e.baseSpread * vixMultiplier * noise);
+        const spread = Math.round(e.baseSpread * vixMultiplier);
         return { ...e, spread };
       }));
     };
