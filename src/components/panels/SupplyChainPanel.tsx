@@ -46,7 +46,7 @@ export default function SupplyChainPanel() {
   const [nodes, setNodes] = useState<ChainNode[]>([]);
   const [vix, setVix] = useState(18);
 
-  // Fetch VIX via REST (same pattern as RiskPanel/CDSPanel)
+  // Fetch VIX via REST (VIX doesn't stream on free websockets)
   useEffect(() => {
     const fetchVix = async () => {
       try {
@@ -62,41 +62,46 @@ export default function SupplyChainPanel() {
     return () => clearInterval(vixTimer);
   }, []);
 
-  // Derive oil and gold from live ticks or Supabase (stable ref via individual values)
-  const oilPrice = ticks['USOIL']?.price ?? prices['CL=F']?.price ?? 71;
-  const goldPrice = ticks['XAUUSD']?.price ?? prices['GC=F']?.price ?? 2980;
+  // Derive oil and gold from live ticks or Supabase (fallback to realistic 2024 averages)
+  const oilPrice = ticks['USOIL']?.price ?? prices['CL=F']?.price ?? 82.50;
+  const goldPrice = ticks['XAUUSD']?.price ?? prices['GC=F']?.price ?? 2350.00;
 
-  // Recalculate stress — runs only when VIX, oil, or gold changes
+  // Recalculate stress — dynamically rescales based on real macro inputs
   useEffect(() => {
     const update = () => {
-      const vixStress  = ((vix - 12) / 28) * 30;
-      const oilStress  = ((oilPrice - 60) / 40) * 20;
-      const goldStress = ((goldPrice - 2000) / 1000) * 10;
+      // Normalize deviations from "normal" baselines
+      const vixStress  = ((vix - 15) / 10) * 15;        // Base VIX~15
+      const oilStress  = ((oilPrice - 75) / 20) * 12;   // Base Oil~$75
+      const goldStress = ((goldPrice - 2000) / 400) * 8; // Base Gold~$2000
 
-      const updated: ChainNode[] = BASE_NODES.map(n => {
-        const rawStress = n.base + vixStress + oilStress + goldStress;
-        const stress = Math.min(Math.max(Math.round(rawStress), 0), 99);
-        const prev = nodes.find(x => x.id === n.id);
-        const trend = prev
-          ? stress > prev.stress + 1 ? 'UP' : stress < prev.stress - 1 ? 'DOWN' : 'STABLE'
-          : 'STABLE';
-        const info = getStressInfo(stress);
-        return {
-          id: n.id,
-          name: n.name,
-          category: n.category,
-          stress,
-          trend,
-          indicator: info.label,
-        };
+      setNodes(prevNodes => {
+        return BASE_NODES.map(n => {
+          const rawStress = n.base + vixStress + oilStress + goldStress;
+          const stress = Math.min(Math.max(Math.round(rawStress), 0), 99);
+          
+          const prev = prevNodes.find(x => x.id === n.id);
+          const trend = prev
+            ? stress > prev.stress + 1 ? 'UP' : stress < prev.stress - 1 ? 'DOWN' : 'STABLE'
+            : 'STABLE';
+            
+          const info = getStressInfo(stress);
+          
+          return {
+            id: n.id,
+            name: n.name,
+            category: n.category,
+            stress,
+            trend,
+            indicator: info.label,
+          };
+        });
       });
-      setNodes(updated);
     };
 
     update();
     const id = setInterval(update, 15_000);
     return () => clearInterval(id);
-  }, [vix, oilPrice, goldPrice]); // stable primitive deps — no 30x/sec recreation
+  }, [vix, oilPrice, goldPrice]);
 
   return (
     <Panel>
