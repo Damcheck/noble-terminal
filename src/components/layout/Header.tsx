@@ -63,8 +63,13 @@ export default function TerminalHeader() {
   useEffect(() => {
     const tick = () => {
       const now = new Date();
-      setTime(now.toISOString().substring(11, 19)); // HH:MM:SS
-      setDate(now.toUTCString().substring(0, 11).toUpperCase()); // WED, 05 APR
+      // Use local user timezone instead of UTC
+      setTime(now.toLocaleTimeString('en-US', { hour12: false }));
+      setDate(now.toLocaleDateString('en-GB', { 
+        weekday: 'short', 
+        day: '2-digit', 
+        month: 'short' 
+      }).toUpperCase());
     };
     tick();
     const iv = setInterval(tick, 1000);
