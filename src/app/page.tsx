@@ -12,6 +12,7 @@ import { useNewsStore } from '@/store/newsStore';
 import { useEconCalStore } from '@/store/econCalStore';
 import { useYieldStore } from '@/store/yieldStore';
 import { useFinnhubStore } from '@/store/finnhubStore';
+import { useBinanceStore } from '@/store/binanceStore';
 
 import TerminalHeader from '@/components/layout/Header';
 import TerminalFooter from '@/components/layout/Footer';
@@ -33,6 +34,7 @@ const DarkPoolPanel = dynamic(() => import('@/components/panels/DarkPoolPanel'),
 const InsiderTradingPanel = dynamic(() => import('@/components/panels/InsiderTradingPanel'), { loading: () => <PanelLoader /> });
 const CDSPanel = dynamic(() => import('@/components/panels/CDSPanel'), { loading: () => <PanelLoader /> });
 const SupplyChainPanel = dynamic(() => import('@/components/panels/SupplyChainPanel'), { loading: () => <PanelLoader /> });
+const LiquidationsPanel = dynamic(() => import('@/components/panels/LiquidationsPanel'), { loading: () => <PanelLoader /> });
 
 const SectorPanel = dynamic(() => import('@/components/panels/MarketPanels').then(m => m.SectorPanel), { loading: () => <PanelLoader /> });
 const CommoditiesPanel = dynamic(() => import('@/components/panels/MarketPanels').then(m => m.CommoditiesPanel), { loading: () => <PanelLoader /> });
@@ -63,6 +65,7 @@ const DEFAULT_LAYOUTS: any = {
     { i: 'capitol',     x: 4, y: 50, w: 4, h: 9,  minW: 3, minH: 6 },
     { i: 'cds',         x: 8, y: 50, w: 4, h: 9,  minW: 3, minH: 6 },
     { i: 'splc',        x: 0, y: 59, w: 6, h: 9,  minW: 4, minH: 8 },
+    { i: 'liquidations',x: 6, y: 59, w: 6, h: 9,  minW: 4, minH: 8 },
   ],
 };
 
@@ -97,10 +100,12 @@ const PANELS = [
   { id: 'capitol',     label: 'Capitol Hill',    Component: InsiderTradingPanel },
   { id: 'cds',         label: 'CDS Spreads',     Component: CDSPanel },
   { id: 'splc',        label: 'Supply Chain',    Component: SupplyChainPanel },
+  { id: 'liquidations',label: 'Lqdts (Binance)', Component: LiquidationsPanel },
 ] as const;
 
 export default function TerminalPage() {
   const [hidden, setHidden] = useState<Set<string>>(new Set());
+  const [layouts, setLayouts] = useState<any>(DEFAULT_LAYOUTS);
 
   const initMarket = useMarketStore(s => s.initializeRealtime);
   const initMacro = useMacroStore(s => s.initializeRealtime);
@@ -109,6 +114,7 @@ export default function TerminalPage() {
   const initYield = useYieldStore(s => s.initializeRealtime);
 
   const connectFinnhub = useFinnhubStore(s => s.connect);
+  const connectBinance = useBinanceStore(s => s.connect);
 
   useEffect(() => {
     // 🔴 Yield to main thread for FCP, then boot up heavy data feeds
@@ -119,15 +125,21 @@ export default function TerminalPage() {
       initEcon();
       initYield();
       connectFinnhub();
+      connectBinance();
     }, 50);
 
     // Reconnect Finnhub when user switches back to the tab
     const onVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
-        const { isConnected, connect } = useFinnhubStore.getState();
-        if (!isConnected) {
+        const finnhub = useFinnhubStore.getState();
+        const binance = useBinanceStore.getState();
+        if (!finnhub.isConnected) {
           console.log('[Finnhub] Tab became visible — reconnecting...');
-          connect();
+          finnhub.connect();
+        }
+        if (!binance.isConnected) {
+          console.log('[Binance] Tab became visible — reconnecting...');
+          binance.connect();
         }
       }
     };
@@ -139,12 +151,30 @@ export default function TerminalPage() {
     };
   }, [initMarket, initMacro, initNews, initEcon, initYield, connectFinnhub]);
 
-  const toggle = (id: string) =>
+  // Load persistence and handle mobile defaults
+  useEffect(() => {
+    try {
+      const savedLayout = localStorage.getItem('nt_layouts');
+      if (savedLayout) setLayouts(JSON.parse(savedLayout));
+
+      const savedHidden = localStorage.getItem('nt_hidden');
+      if (savedHidden) {
+        setHidden(new Set(JSON.parse(savedHidden)));
+      } else if (window.innerWidth < 768) {
+        // Mobile default: hide heavy panels to prevent endless scrolling
+        setHidden(new Set(['africa', 'splc', 'cds', 'capitol', 'yield', 'tvwall', 'sector', 'heatmap', 'macro']));
+      }
+    } catch { /* ignore */ }
+  }, []);
+
+  const toggle = (id: string) => {
     setHidden(prev => {
       const next = new Set(prev);
       next.has(id) ? next.delete(id) : next.add(id);
+      localStorage.setItem('nt_hidden', JSON.stringify(Array.from(next)));
       return next;
     });
+  };
 
   const visiblePanels = PANELS.filter(p => !hidden.has(p.id));
   const { width, containerRef, mounted } = useContainerWidth();
@@ -212,10 +242,15 @@ export default function TerminalPage() {
           <ResponsiveGridLayout
             width={width}
             layouts={{ 
-              lg: DEFAULT_LAYOUTS.lg.filter((l: any) => !hidden.has(l.i)),
-              md: DEFAULT_LAYOUTS.md.filter((l: any) => !hidden.has(l.i)),
-              sm: DEFAULT_LAYOUTS.sm.filter((l: any) => !hidden.has(l.i)),
-              xs: DEFAULT_LAYOUTS.xs.filter((l: any) => !hidden.has(l.i)),
+              lg: layouts.lg.filter((l: any) => !hidden.has(l.i)),
+              md: layouts.md.filter((l: any) => !hidden.has(l.i)),
+              sm: layouts.sm.filter((l: any) => !hidden.has(l.i)),
+              xs: layouts.xs.filter((l: any) => !hidden.has(l.i)),
+            }}
+            onLayoutChange={(curr, all) => {
+              if (!mounted) return;
+              setLayouts(all);
+              localStorage.setItem('nt_layouts', JSON.stringify(all));
             }}
             breakpoints={{ lg: 1280, md: 996, sm: 768, xs: 480 }}
             cols={{ lg: 12, md: 8, sm: 4, xs: 2 }}

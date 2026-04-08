@@ -86,5 +86,12 @@ export async function GET() {
     return db - da;
   });
 
-  return NextResponse.json({ articles: allItems.slice(0, 50), ts: Date.now() });
+  return NextResponse.json(
+    { articles: allItems.slice(0, 50), ts: Date.now() },
+    {
+      headers: {
+        'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=120',
+      },
+    }
+  );
 }

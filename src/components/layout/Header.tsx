@@ -30,8 +30,8 @@ export default function TerminalHeader() {
   const [date, setDate] = useState('');
   const [squawkOn, setSquawkOn] = useState(false);
   const lastSpokenRef = useRef<string>('');
-  const { prices } = useMarketStore();
-  const { ticks } = useFinnhubStore(); // real-time ticks — higher priority
+  const { prices, isRealtimeConnected } = useMarketStore();
+  const { ticks, isConnected: isFinnhubConnected } = useFinnhubStore(); // real-time ticks — higher priority
   const { articles } = useNewsStore();
   const { theme, toggleTheme } = useThemeStore();
 
@@ -129,28 +129,53 @@ export default function TerminalHeader() {
         className="flex items-center justify-between px-3"
         style={{ height: 36, borderBottom: '1px solid var(--border-subtle)' }}
       >
-        {/* Logo */}
-        <div className="flex items-center gap-2 flex-shrink-0">
-          <span
+        {/* Logo & System Health */}
+        <div className="flex items-center gap-3 flex-shrink-0">
+          <div className="flex items-center gap-2">
+            <span
+              style={{
+                fontFamily: 'var(--font-mono)',
+                fontWeight: 700,
+                fontSize: 13,
+                letterSpacing: '0.18em',
+                color: '#44ff88',
+              }}
+            >
+              NOBLE
+            </span>
+            <span
+              style={{
+                fontSize: 9, fontWeight: 600, color: 'var(--text-dim)',
+                background: 'var(--surface)', border: '1px solid var(--border)',
+                padding: '2px 6px', borderRadius: 2, letterSpacing: 1,
+              }}
+            >
+              TERMINAL v1.0
+            </span>
+          </div>
+
+          {/* System Health Indicator */}
+          <div
+            className="flex items-center gap-1.5"
             style={{
-              fontFamily: 'var(--font-mono)',
-              fontWeight: 700,
-              fontSize: 13,
-              letterSpacing: '0.18em',
-              color: '#44ff88',
+              background: 'var(--overlay-subtle)',
+              border: '1px solid var(--border-subtle)',
+              padding: '2px 6px',
+              borderRadius: 3,
             }}
           >
-            NOBLE
-          </span>
-          <span
-            style={{
-              fontSize: 9, fontWeight: 600, color: 'var(--text-dim)',
-              background: 'var(--surface)', border: '1px solid var(--border)',
-              padding: '2px 6px', borderRadius: 2, letterSpacing: 1,
-            }}
-          >
-            TERMINAL v1.0
-          </span>
+            <div
+              style={{
+                width: 6, height: 6, borderRadius: '50%',
+                background: isFinnhubConnected && isRealtimeConnected ? '#44ff88' : isFinnhubConnected || isRealtimeConnected ? '#ffaa00' : '#ff4444',
+                boxShadow: `0 0 6px ${isFinnhubConnected && isRealtimeConnected ? '#44ff88' : isFinnhubConnected || isRealtimeConnected ? '#ffaa00' : '#ff4444'}`,
+                animation: (isFinnhubConnected || isRealtimeConnected) ? 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite' : 'none',
+              }}
+            />
+            <span style={{ fontSize: 8, color: 'var(--text-ghost)', fontWeight: 600, letterSpacing: 0.5 }}>
+              SYS{(isFinnhubConnected && isRealtimeConnected) ? ' OK' : (isFinnhubConnected || isRealtimeConnected) ? ' WARN' : ' ERR'}
+            </span>
+          </div>
         </div>
 
         {/* Market Status Badges */}
