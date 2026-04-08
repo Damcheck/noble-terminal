@@ -33,6 +33,12 @@ export const metadata: Metadata = {
     title: "Noble Terminal - Institutional Grade Trading",
     description: "Experience absolute market transparency.",
     creator: "@noblefunded",
+  },
+  verification: {
+    google: "mwJcgTQzhRuwfIMzmJ0xA5trWvXa_Iq_BUpCNlHPjN4",
+  },
+  alternates: {
+    canonical: "https://terminal.noblefunded.com",
   }
 };
 
