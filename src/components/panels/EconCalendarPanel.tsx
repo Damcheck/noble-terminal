@@ -1,8 +1,34 @@
 'use client';
 
+import { useEffect, useRef } from 'react';
 import { Panel, PanelHeader } from '@/components/ui/Panel';
 
 export default function EconCalendarPanel() {
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!containerRef.current) return;
+    
+    // Clear previously injected script to prevent duplicates on hot-reload/remounts
+    containerRef.current.innerHTML = '';
+
+    const script = document.createElement('script');
+    script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-events.js';
+    script.type = 'text/javascript';
+    script.async = true;
+    script.innerHTML = JSON.stringify({
+      colorTheme: 'dark',
+      isTransparent: true,
+      width: '100%',
+      height: '100%',
+      locale: 'en',
+      importanceFilter: '-1,0,1',
+      currencyFilter: 'USD,EUR,GBP,JPY,AUD,CAD,CHF,CNY'
+    });
+
+    containerRef.current.appendChild(script);
+  }, []);
+
   return (
     <Panel>
       <PanelHeader
@@ -16,19 +42,8 @@ export default function EconCalendarPanel() {
           }}>◉ LIVE</span>
         }
       />
-      <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
-        <iframe
-          src="https://sslecal2.investing.com/?columns=exc_flags,exc_currency,exc_importance,exc_actual,exc_forecast,exc_previous&importance=2,3&features=datepicker,timezone&countries=25,32,6,37,72,22,17,39,14,10,35,43,56,36,110,11,26,12,4,5&calType=week&timeZone=55&lang=1"
-          style={{
-            width: '100%',
-            height: '100%',
-            border: 'none',
-            background: 'transparent',
-            filter: 'invert(1) hue-rotate(180deg)', // dark-mode invert
-          }}
-          title="Economic Calendar"
-          loading="lazy"
-        />
+      <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }} ref={containerRef}>
+        {/* TradingView script injects here */}
       </div>
     </Panel>
   );
