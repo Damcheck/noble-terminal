@@ -48,8 +48,28 @@ export default function RiskPanel() {
     return () => clearInterval(id);
   }, []);
 
-  const vix = ticks['^VIX']?.price ?? prices['^VIX']?.price ?? null;
+  const [vixPrice, setVixPrice] = useState<number | null>(null);
+
+  // Fetch VIX via Finnhub REST (free tier) — WebSocket doesn't stream it
+  const fetchVix = useCallback(async () => {
+    try {
+      const token = process.env.NEXT_PUBLIC_FINNHUB_TOKEN;
+      if (!token) return;
+      const res = await fetch(`https://finnhub.io/api/v1/quote?symbol=%5EVIX&token=${token}`);
+      const data = await res.json();
+      if (data?.c && data.c > 0) setVixPrice(data.c);
+    } catch { /* silent */ }
+  }, []);
+
+  useEffect(() => {
+    fetchVix();
+    const id = setInterval(fetchVix, 60_000); // every 60s
+    return () => clearInterval(id);
+  }, [fetchVix]);
+
+  // BTC price via Finnhub WebSocket (key: BTC-USD from BINANCE:BTCUSDT mapping)
   const btcPrice = ticks['BTC-USD']?.price ?? prices['BTC-USD']?.price ?? null;
+  const vix = vixPrice;
   const fearVal = fearGreed?.value ?? 50;
 
   // Derive risk levels from live data

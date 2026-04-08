@@ -1,12 +1,10 @@
 'use client';
 
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
 import { Panel, PanelHeader, PanelContent, LiveBadge, WSBadge, Sparkline, TickingPrice } from '@/components/ui/Panel';
 import { CRYPTO_LIST as MOCK_CRYPTO_LIST } from '@/lib/mockData';
 import { useMarketStore } from '@/store/marketStore';
 import { useFinnhubStore } from '@/store/finnhubStore';
-
-const FEAR_GREED_MOCK = { value: 61, label: 'GREED' };
 
 function getFearColor(v: number) {
   if (v < 25) return '#ff4444';
@@ -20,9 +18,23 @@ export default function CryptoPanel() {
   const { prices, isRealtimeConnected, initializeRealtime, setSelectedSymbol } = useMarketStore();
   const { ticks, isConnected: isFinnhubConnected } = useFinnhubStore();
 
+  // Live Fear & Greed from Alternative.me (free, no key needed)
+  const [fearGreed, setFearGreed] = useState<{ value: number; label: string } | null>(null);
+  const fetchFearGreed = useCallback(async () => {
+    try {
+      const res = await fetch('https://api.alternative.me/fng/?limit=1');
+      const data = await res.json();
+      if (data?.data?.[0]) {
+        setFearGreed({ value: Number(data.data[0].value), label: data.data[0].value_classification.toUpperCase() });
+      }
+    } catch { /* silent */ }
+  }, []);
+
   useEffect(() => {
-    initializeRealtime();
-  }, [initializeRealtime]);
+    fetchFearGreed();
+    const id = setInterval(fetchFearGreed, 300_000); // refresh every 5 min
+    return () => clearInterval(id);
+  }, [fetchFearGreed]);
 
   const globalMeta = prices['__CRYPTO_GLOBAL__'];
   const btcDom = globalMeta?.extra?.btc_dominance 
@@ -32,8 +44,10 @@ export default function CryptoPanel() {
     ? `$${(globalMeta.price / 1e12).toFixed(2)}T` 
     : '2.81T';
 
-  const color = getFearColor(FEAR_GREED_MOCK.value);
-  const fill = (FEAR_GREED_MOCK.value / 100) * 157;
+  const fearVal = fearGreed?.value ?? 50;
+  const fearLabel = fearGreed?.label ?? 'LOADING';
+  const color = getFearColor(fearVal);
+  const fill = (fearVal / 100) * 157;
 
   // Merge Realtime Data into Mock data array for layout stability
   const renderList = useMemo(() => {
@@ -86,11 +100,11 @@ export default function CryptoPanel() {
           <svg viewBox="0 0 80 46" style={{ width: 80, height: 46, flexShrink: 0 }}>
             <path d="M 7 40 A 33 33 0 0 1 73 40" fill="none" stroke="var(--border-strong)" strokeWidth={5} strokeLinecap="round" />
             <path d="M 7 40 A 33 33 0 0 1 73 40" fill="none" stroke={color} strokeWidth={5} strokeLinecap="round" strokeDasharray={`${fill * 0.67} 105`} />
-            <text x="40" y="36" textAnchor="middle" fill={color} fontSize="14" fontWeight="700" fontFamily="var(--font-mono)">{FEAR_GREED_MOCK.value}</text>
+            <text x="40" y="36" textAnchor="middle" fill={color} fontSize="14" fontWeight="700" fontFamily="var(--font-mono)">{fearVal}</text>
           </svg>
           <div>
-            <div style={{ fontSize: 9, color: 'var(--text-ghost)', letterSpacing: 0.5 }}>FEAR & GREED</div>
-            <div style={{ fontSize: 12, fontWeight: 700, color }}>{FEAR_GREED_MOCK.label}</div>
+            <div style={{ fontSize: 9, color: 'var(--text-ghost)', letterSpacing: 0.5 }}>FEAR &amp; GREED</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color }}>{fearLabel}</div>
           </div>
           <div style={{ marginLeft: 'auto', textAlign: 'right' }}>
             <div style={{ fontSize: 9, color: 'var(--text-ghost)' }}>BTC DOM</div>
@@ -136,7 +150,7 @@ export default function CryptoPanel() {
                     cursor: 'pointer',
                     transition: 'background 0.1s',
                   }}
-                  onClick={() => setSelectedSymbol(c.symbol)}
+                  onClick={() => setSelectedSymbol(`${c.symbol}-USD`)}
                   onMouseEnter={e => { (e.currentTarget as HTMLTableRowElement).style.background = 'var(--overlay-light)'; }}
                   onMouseLeave={e => { (e.currentTarget as HTMLTableRowElement).style.background = i % 2 === 0 ? 'transparent' : 'var(--overlay-subtle)'; }}
                 >

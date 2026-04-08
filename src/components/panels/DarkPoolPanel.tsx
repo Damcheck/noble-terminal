@@ -66,13 +66,26 @@ export default function DarkPoolPanel() {
   const [trades, setTrades] = useState<DarkTrade[]>([]);
   const lastTickTime = useRef(0);
 
-  const cleanSymbol = selectedSymbol.split(':')[1] || selectedSymbol;
-  const livePrice = ticks[cleanSymbol]?.price || prices[cleanSymbol]?.price || null;
+  // Resolve live price for any symbol format (crypto, forex, metals)
+  const resolvePrice = (sym: string): number | null => {
+    const stripped = sym.includes(':') ? sym.split(':')[1] : sym;
+    if (ticks[stripped]) return ticks[stripped].price;
+    if (ticks[`${stripped}-USD`]) return ticks[`${stripped}-USD`].price;
+    const noUsd = stripped.replace('-USD', '');
+    if (ticks[noUsd]) return ticks[noUsd].price;
+    if (prices[stripped]) return prices[stripped].price;
+    if (prices[`${stripped}-USD`]) return prices[`${stripped}-USD`].price;
+    if (prices[noUsd]) return prices[noUsd].price;
+    return null;
+  };
+
+  const rawSymbol = selectedSymbol.includes(':') ? selectedSymbol.split(':')[1] : selectedSymbol;
+  const livePrice = resolvePrice(selectedSymbol);
 
   // Clear trades when symbol switches
   useEffect(() => {
     setTrades([]);
-  }, [cleanSymbol]);
+  }, [rawSymbol]);
 
   // Generate a new trade every 2–5 seconds
   useEffect(() => {
@@ -83,25 +96,25 @@ export default function DarkPoolPanel() {
       if (prev.length > 0) return prev;
       const initial: DarkTrade[] = [];
       for (let i = 0; i < 8; i++) {
-        const t = generateTrade(cleanSymbol, livePrice);
+        const t = generateTrade(rawSymbol, livePrice);
         if (t) initial.push(t);
       }
       return initial;
     });
 
     const interval = setInterval(() => {
-      const newTrade = generateTrade(cleanSymbol, livePrice);
+      const newTrade = generateTrade(rawSymbol, livePrice);
       if (newTrade) {
         setTrades(prev => [newTrade, ...prev.slice(0, 14)]);
       }
     }, Math.floor(randBetween(2000, 5000)));
 
     return () => clearInterval(interval);
-  }, [cleanSymbol, livePrice]);
+  }, [rawSymbol, livePrice]);
 
   return (
     <Panel>
-      <PanelHeader title={`Dark Pool Flow — ${cleanSymbol || '---'}`} count={trades.length} badge={<LiveBadge />} />
+      <PanelHeader title={`Dark Pool Flow — ${rawSymbol || '---'}`} count={trades.length} badge={<LiveBadge />} />
       <PanelContent noPad>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 9 }}>
           <thead>

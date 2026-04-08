@@ -38,30 +38,53 @@ export default function OrderBookPanel() {
     return () => clearInterval(id);
   }, []);
 
-  // Use the globally selected symbol for the order book (maps FX_IDC:EURUSD to EURUSD)
-  const cleanSymbol = selectedSymbol.split(':')[1] || selectedSymbol;
-  
-  const livePrice = ticks[cleanSymbol]?.price || prices[cleanSymbol]?.price || null;
+  // Resolve the live price regardless of how selectedSymbol was set.
+  // Handles: 'BTC-USD', 'BTC', 'XAUUSD', 'FX_IDC:EURUSD', 'EURUSD' etc.
+  const resolvePrice = (sym: string): number | null => {
+    // Normalise: strip any exchange prefix like "FX_IDC:" or "BINANCE:"
+    const stripped = sym.includes(':') ? sym.split(':')[1] : sym;
+
+    // Direct lookup in ticks first (fastest — sub-second)
+    if (ticks[stripped]) return ticks[stripped].price;
+    // Try appending -USD for crypto shortcodes like "BTC"
+    if (ticks[`${stripped}-USD`]) return ticks[`${stripped}-USD`].price;
+    // Try removing -USD suffix (some panels store as BTCUSD)
+    const noUsd = stripped.replace('-USD', '');
+    if (ticks[noUsd]) return ticks[noUsd].price;
+
+    // Fallback to Supabase / REST cached price
+    if (prices[stripped]) return prices[stripped].price;
+    if (prices[`${stripped}-USD`]) return prices[`${stripped}-USD`].price;
+    if (prices[noUsd]) return prices[noUsd].price;
+
+    return null;
+  };
+
+  // Derive a clean display label
+  const rawSymbol = selectedSymbol.includes(':') ? selectedSymbol.split(':')[1] : selectedSymbol;
+  const livePrice = resolvePrice(selectedSymbol);
+
+  // Tick-size and decimal config derived from symbol
+  const isJPY = rawSymbol.includes('JPY');
+  const isGold = rawSymbol.includes('XAU') || rawSymbol === 'XAUUSD';
+  const isCrypto = rawSymbol.includes('-USD') || rawSymbol === 'BTC' || rawSymbol === 'ETH';
+  const priceDecimals = isCrypto ? 2 : isJPY ? 3 : isGold ? 2 : 5;
+  const label = rawSymbol;
 
   const book = useMemo(() => {
     if (!livePrice) return { asks: [], bids: [], spread: '---' };
-    
     const mid = livePrice;
     const asks = generateLevels(mid, 7, 'ask', tick);
     const bids = generateLevels(mid, 7, 'bid', tick);
-    const spreadDecimals = cleanSymbol.includes('JPY') ? 3 : cleanSymbol.includes('XAU') ? 2 : 5;
-    const spread = (asks[asks.length - 1].price - bids[0].price).toFixed(spreadDecimals);
+    const spread = (asks[asks.length - 1].price - bids[0].price).toFixed(priceDecimals);
     return { asks, bids, spread };
-  }, [livePrice, tick, cleanSymbol]);
+  }, [livePrice, tick, priceDecimals]);
 
   const maxTotal = Math.max(
     1,
     ...book.asks.map(a => a.total),
     ...book.bids.map(b => b.total)
   );
-
-  const label = cleanSymbol || 'XAUUSD';
-  const priceDecimals = cleanSymbol.includes('JPY') ? 3 : cleanSymbol.includes('XAU') ? 2 : 5;
 
   return (
     <Panel>
