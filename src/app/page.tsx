@@ -15,27 +15,31 @@ import { useFinnhubStore } from '@/store/finnhubStore';
 
 import TerminalHeader from '@/components/layout/Header';
 import TerminalFooter from '@/components/layout/Footer';
-import HeatMapPanel from '@/components/panels/HeatMapPanel';
-import WatchlistPanel from '@/components/panels/WatchlistPanel';
-import ForexPanel from '@/components/panels/ForexPanel';
-import NewsFeedPanel from '@/components/panels/NewsFeedPanel';
-import EconCalendarPanel from '@/components/panels/EconCalendarPanel';
-import RiskPanel from '@/components/panels/RiskPanel';
-import { SectorPanel, CommoditiesPanel } from '@/components/panels/MarketPanels';
-import { MacroPanel } from '@/components/panels/MacroPanel';
-import OrderBookPanel from '@/components/panels/OrderBookPanel';
-import CryptoPanel from '@/components/panels/CryptoPanel';
-import AfricanMarketsPanel from '@/components/panels/AfricanMarketsPanel';
-import YieldCurvePanel from '@/components/panels/YieldCurvePanel';
-import DarkPoolPanel from '@/components/panels/DarkPoolPanel';
-import InsiderTradingPanel from '@/components/panels/InsiderTradingPanel';
-import CDSPanel from '@/components/panels/CDSPanel';
-import SupplyChainPanel from '@/components/panels/SupplyChainPanel';
-import TVWallPanel from '@/components/panels/TVWallPanel';
+import PanelLoader from '@/components/ui/PanelLoader';
 
-// Chart and TVWall must be dynamic (use browser APIs)
-const ChartPanel = dynamic(() => import('@/components/panels/ChartPanel'), { ssr: false });
-const TVWall = dynamic(() => import('@/components/panels/TVWallPanel'), { ssr: false });
+// Heavy modules chunk split with loading states (fixes PageSpeed FCP/TBT)
+const HeatMapPanel = dynamic(() => import('@/components/panels/HeatMapPanel'), { loading: () => <PanelLoader /> });
+const WatchlistPanel = dynamic(() => import('@/components/panels/WatchlistPanel'), { loading: () => <PanelLoader /> });
+const ForexPanel = dynamic(() => import('@/components/panels/ForexPanel'), { loading: () => <PanelLoader /> });
+const NewsFeedPanel = dynamic(() => import('@/components/panels/NewsFeedPanel'), { loading: () => <PanelLoader /> });
+const EconCalendarPanel = dynamic(() => import('@/components/panels/EconCalendarPanel'), { loading: () => <PanelLoader /> });
+const RiskPanel = dynamic(() => import('@/components/panels/RiskPanel'), { loading: () => <PanelLoader /> });
+const MacroPanel = dynamic(() => import('@/components/panels/MacroPanel').then(m => m.MacroPanel), { loading: () => <PanelLoader /> });
+const OrderBookPanel = dynamic(() => import('@/components/panels/OrderBookPanel'), { loading: () => <PanelLoader /> });
+const CryptoPanel = dynamic(() => import('@/components/panels/CryptoPanel'), { loading: () => <PanelLoader /> });
+const AfricanMarketsPanel = dynamic(() => import('@/components/panels/AfricanMarketsPanel'), { loading: () => <PanelLoader /> });
+const YieldCurvePanel = dynamic(() => import('@/components/panels/YieldCurvePanel'), { loading: () => <PanelLoader /> });
+const DarkPoolPanel = dynamic(() => import('@/components/panels/DarkPoolPanel'), { loading: () => <PanelLoader /> });
+const InsiderTradingPanel = dynamic(() => import('@/components/panels/InsiderTradingPanel'), { loading: () => <PanelLoader /> });
+const CDSPanel = dynamic(() => import('@/components/panels/CDSPanel'), { loading: () => <PanelLoader /> });
+const SupplyChainPanel = dynamic(() => import('@/components/panels/SupplyChainPanel'), { loading: () => <PanelLoader /> });
+
+const SectorPanel = dynamic(() => import('@/components/panels/MarketPanels').then(m => m.SectorPanel), { loading: () => <PanelLoader /> });
+const CommoditiesPanel = dynamic(() => import('@/components/panels/MarketPanels').then(m => m.CommoditiesPanel), { loading: () => <PanelLoader /> });
+
+// Chart and TVWall must be dynamic browser APIs
+const ChartPanel = dynamic(() => import('@/components/panels/ChartPanel'), { ssr: false, loading: () => <PanelLoader /> });
+const TVWall = dynamic(() => import('@/components/panels/TVWallPanel'), { ssr: false, loading: () => <PanelLoader /> });
 
 // Default layout — 12-col grid, rowHeight=32
 const DEFAULT_LAYOUTS: any = {
@@ -107,12 +111,15 @@ export default function TerminalPage() {
   const connectFinnhub = useFinnhubStore(s => s.connect);
 
   useEffect(() => {
-    initMarket();
-    initMacro();
-    initNews();
-    initEcon();
-    initYield();
-    connectFinnhub(); // 🔴 Live WebSocket — ticking prices
+    // 🔴 Yield to main thread for FCP, then boot up heavy data feeds
+    const timer = setTimeout(() => {
+      initMarket();
+      initMacro();
+      initNews();
+      initEcon();
+      initYield();
+      connectFinnhub();
+    }, 50);
 
     // Reconnect Finnhub when user switches back to the tab
     const onVisibilityChange = () => {
@@ -125,7 +132,11 @@ export default function TerminalPage() {
       }
     };
     document.addEventListener('visibilitychange', onVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', onVisibilityChange);
+    
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+    };
   }, [initMarket, initMacro, initNews, initEcon, initYield, connectFinnhub]);
 
   const toggle = (id: string) =>
