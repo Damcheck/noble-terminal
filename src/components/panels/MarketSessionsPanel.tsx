@@ -67,7 +67,8 @@ export default function MarketSessionsPanel() {
   return (
     <Panel>
       <PanelHeader title="Global Market Sessions" badge={<LiveBadge />} />
-      <PanelContent style={{ padding: '8px 12px' }}>
+      <PanelContent>
+        <div style={{ padding: '8px 12px', height: '100%' }}>
         {/* The 24-hour visualization bar */}
         <div style={{ marginBottom: 12 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 8, fontWeight: 600, color: 'var(--text-ghost)', marginBottom: 4 }}>
@@ -166,6 +167,7 @@ export default function MarketSessionsPanel() {
               </div>
             );
           })}
+        </div>
         </div>
       </PanelContent>
     </Panel>
