@@ -36,6 +36,7 @@ const CDSPanel = dynamic(() => import('@/components/panels/CDSPanel'), { loading
 const SupplyChainPanel = dynamic(() => import('@/components/panels/SupplyChainPanel'), { loading: () => <PanelLoader /> });
 const LiquidationsPanel = dynamic(() => import('@/components/panels/LiquidationsPanel'), { loading: () => <PanelLoader /> });
 const MarketSessionsPanel = dynamic(() => import('@/components/panels/MarketSessionsPanel'), { loading: () => <PanelLoader /> });
+const CurrencyStrengthPanel = dynamic(() => import('@/components/panels/CurrencyStrengthPanel'), { loading: () => <PanelLoader /> });
 const SectorPanel = dynamic(() => import('@/components/panels/MarketPanels').then(m => m.SectorPanel), { loading: () => <PanelLoader /> });
 const CommoditiesPanel = dynamic(() => import('@/components/panels/MarketPanels').then(m => m.CommoditiesPanel), { loading: () => <PanelLoader /> });
 
@@ -67,6 +68,7 @@ const DEFAULT_LAYOUTS: any = {
     { i: 'splc',        x: 0, y: 59, w: 6, h: 9,  minW: 4, minH: 8 },
     { i: 'liquidations',x: 6, y: 59, w: 6, h: 9,  minW: 4, minH: 8 },
     { i: 'sessions',    x: 0, y: 68, w: 12, h: 8, minW: 6, minH: 7 },
+    { i: 'currency',    x: 0, y: 76, w: 12, h: 9, minW: 6, minH: 7 },
   ],
 };
 
@@ -103,6 +105,7 @@ const PANELS = [
   { id: 'splc',        label: 'Supply Chain',    Component: SupplyChainPanel },
   { id: 'liquidations',label: 'Lqdts (Binance)', Component: LiquidationsPanel },
   { id: 'sessions',    label: 'Sessions',        Component: MarketSessionsPanel },
+  { id: 'currency',    label: 'Currency',        Component: CurrencyStrengthPanel },
 ] as const;
 
 export default function TerminalPage() {
