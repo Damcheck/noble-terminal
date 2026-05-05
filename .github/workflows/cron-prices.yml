@@ -1,7 +1,6 @@
 name: 🔄 Cron — Market Prices (every 5m)
+# Schedule disabled — handled by cron-job.org
 on:
-  schedule:
-    - cron: '2,7,12,17,22,27,32,37,42,47,52,57 * * * *'
   workflow_dispatch:
 
 jobs:

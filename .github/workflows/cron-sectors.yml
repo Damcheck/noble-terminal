@@ -1,7 +1,6 @@
 name: 🔄 Cron — Sectors (every 15m)
+# Schedule disabled — handled by cron-job.org
 on:
-  schedule:
-    - cron: '*/15 * * * *'
   workflow_dispatch:
 
 jobs:
