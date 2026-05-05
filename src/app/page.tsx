@@ -39,6 +39,7 @@ const MarketSessionsPanel = dynamic(() => import('@/components/panels/MarketSess
 const CurrencyStrengthPanel = dynamic(() => import('@/components/panels/CurrencyStrengthPanel'), { loading: () => <PanelLoader /> });
 const SectorPanel = dynamic(() => import('@/components/panels/MarketPanels').then(m => m.SectorPanel), { loading: () => <PanelLoader /> });
 const CommoditiesPanel = dynamic(() => import('@/components/panels/MarketPanels').then(m => m.CommoditiesPanel), { loading: () => <PanelLoader /> });
+const EarningsCalendarPanel = dynamic(() => import('@/components/panels/EarningsCalendarPanel'), { loading: () => <PanelLoader /> });
 
 // Chart and TVWall must be dynamic browser APIs
 const ChartPanel = dynamic(() => import('@/components/panels/ChartPanel'), { ssr: false, loading: () => <PanelLoader /> });
@@ -69,6 +70,7 @@ const DEFAULT_LAYOUTS: any = {
     { i: 'liquidations',x: 6, y: 59, w: 6, h: 9,  minW: 4, minH: 8 },
     { i: 'sessions',    x: 0, y: 68, w: 12, h: 8, minW: 6, minH: 7 },
     { i: 'currency',    x: 0, y: 76, w: 12, h: 9, minW: 6, minH: 7 },
+    { i: 'earnings',    x: 0, y: 85, w: 12, h: 11, minW: 6, minH: 8 },
   ],
 };
 
@@ -106,6 +108,7 @@ const PANELS = [
   { id: 'liquidations',label: 'Lqdts (Binance)', Component: LiquidationsPanel },
   { id: 'sessions',    label: 'Sessions',        Component: MarketSessionsPanel },
   { id: 'currency',    label: 'Currency',        Component: CurrencyStrengthPanel },
+  { id: 'earnings',    label: 'Earnings',        Component: EarningsCalendarPanel },
 ] as const;
 
 export default function TerminalPage() {
