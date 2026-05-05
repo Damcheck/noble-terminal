@@ -123,7 +123,7 @@ export default function EarningsCalendarPanel() {
 
   useEffect(() => {
     fetchEarnings();
-    const interval = setInterval(fetchEarnings, 5 * 60 * 1000); // refresh every 5 min
+    const interval = setInterval(fetchEarnings, 1 * 60 * 1000); // refresh every 1 min
     return () => clearInterval(interval);
   }, []);
 
@@ -287,7 +287,7 @@ export default function EarningsCalendarPanel() {
           borderTop: '1px solid var(--border-subtle)',
           fontFamily: 'var(--font-mono)',
         }}>
-          Earnings data via Finnhub · Next 7 days · Top 40 symbols · Refreshes every 5min
+          Earnings data via Finnhub · Next 7 days · Top 40 symbols · Refreshes every 1min
         </div>
       </PanelContent>
     </Panel>

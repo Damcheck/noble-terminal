@@ -40,6 +40,8 @@ const CurrencyStrengthPanel = dynamic(() => import('@/components/panels/Currency
 const SectorPanel = dynamic(() => import('@/components/panels/MarketPanels').then(m => m.SectorPanel), { loading: () => <PanelLoader /> });
 const CommoditiesPanel = dynamic(() => import('@/components/panels/MarketPanels').then(m => m.CommoditiesPanel), { loading: () => <PanelLoader /> });
 const EarningsCalendarPanel = dynamic(() => import('@/components/panels/EarningsCalendarPanel'), { loading: () => <PanelLoader /> });
+const VixBreadthPanel = dynamic(() => import('@/components/panels/VixBreadthPanel'), { loading: () => <PanelLoader /> });
+const CentralBankRatesPanel = dynamic(() => import('@/components/panels/CentralBankRatesPanel'), { loading: () => <PanelLoader /> });
 
 // Chart and TVWall must be dynamic browser APIs
 const ChartPanel = dynamic(() => import('@/components/panels/ChartPanel'), { ssr: false, loading: () => <PanelLoader /> });
@@ -70,7 +72,9 @@ const DEFAULT_LAYOUTS: any = {
     { i: 'liquidations',x: 6, y: 59, w: 6, h: 9,  minW: 4, minH: 8 },
     { i: 'sessions',    x: 0, y: 68, w: 12, h: 8, minW: 6, minH: 7 },
     { i: 'currency',    x: 0, y: 76, w: 12, h: 9, minW: 6, minH: 7 },
-    { i: 'earnings',    x: 0, y: 85, w: 12, h: 11, minW: 6, minH: 8 },
+    { i: 'vix',         x: 0, y: 85, w: 4, h: 6,  minW: 3, minH: 5 },
+    { i: 'centralbanks',x: 4, y: 85, w: 8, h: 6,  minW: 4, minH: 5 },
+    { i: 'earnings',    x: 0, y: 91, w: 12, h: 11, minW: 6, minH: 8 },
   ],
 };
 
@@ -108,6 +112,8 @@ const PANELS = [
   { id: 'liquidations',label: 'Lqdts (Binance)', Component: LiquidationsPanel },
   { id: 'sessions',    label: 'Sessions',        Component: MarketSessionsPanel },
   { id: 'currency',    label: 'Currency',        Component: CurrencyStrengthPanel },
+  { id: 'vix',         label: 'VIX & Breadth',   Component: VixBreadthPanel },
+  { id: 'centralbanks',label: 'CB Rates',        Component: CentralBankRatesPanel },
   { id: 'earnings',    label: 'Earnings',        Component: EarningsCalendarPanel },
 ] as const;
 
